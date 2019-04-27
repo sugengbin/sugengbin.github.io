@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="redis,redlock,cas," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="特性 排他性，只有一个客户端能持有锁 不死锁 容错，部分redis节点挂了，也支持锁特性  Redis分布式锁 极客时间耗子叔分布式锁Redis分布式锁官方文档Is Redlock safeHow to do distributed locking  Redis 命令 加锁SET NX 在key不存在的时候给key赋值，PX通知 Redis 保存这个key 30000ms(锁过期时间),当资源被锁">
+<meta name="keywords" content="redis,redlock,cas">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式锁">
+<meta property="og:url" content="http://yoursite.com/2018/05/26/分布式锁/index.html">
+<meta property="og:site_name" content="Knight Dawn">
+<meta property="og:description" content="特性 排他性，只有一个客户端能持有锁 不死锁 容错，部分redis节点挂了，也支持锁特性  Redis分布式锁 极客时间耗子叔分布式锁Redis分布式锁官方文档Is Redlock safeHow to do distributed locking  Redis 命令 加锁SET NX 在key不存在的时候给key赋值，PX通知 Redis 保存这个key 30000ms(锁过期时间),当资源被锁">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://yoursite.com/images/distributed_lock/lock_unsafe.png">
+<meta property="og:image" content="http://yoursite.com/images/distributed_lock/lock_fencing-tokens.png">
+<meta property="og:updated_time" content="2018-05-28T14:12:56.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="分布式锁">
+<meta name="twitter:description" content="特性 排他性，只有一个客户端能持有锁 不死锁 容错，部分redis节点挂了，也支持锁特性  Redis分布式锁 极客时间耗子叔分布式锁Redis分布式锁官方文档Is Redlock safeHow to do distributed locking  Redis 命令 加锁SET NX 在key不存在的时候给key赋值，PX通知 Redis 保存这个key 30000ms(锁过期时间),当资源被锁">
+<meta name="twitter:image" content="http://yoursite.com/images/distributed_lock/lock_unsafe.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/05/26/分布式锁/"/>
+
+
+
+
+
+  <title>分布式锁 | Knight Dawn</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Knight Dawn</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/05/26/分布式锁/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="sugengbin">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Knight Dawn">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">分布式锁</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-26T13:58:50+08:00">
+                2018-05-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="特性"><a href="#特性" class="headerlink" title="特性"></a>特性</h2><ul>
+<li>排他性，只有一个客户端能持有锁</li>
+<li>不死锁</li>
+<li>容错，部分redis节点挂了，也支持锁特性</li>
+</ul>
+<h2 id="Redis分布式锁"><a href="#Redis分布式锁" class="headerlink" title="Redis分布式锁"></a>Redis分布式锁</h2><blockquote>
+<p><a href="https://time.geekbang.org/column/article/5175" target="_blank" rel="noopener">极客时间耗子叔分布式锁</a><br><a href="https://redis.io/topics/distlock" target="_blank" rel="noopener">Redis分布式锁官方文档</a><br><a href="http://antirez.com/news/101" target="_blank" rel="noopener">Is Redlock safe</a><br><a href="http://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html" target="_blank" rel="noopener">How to do distributed locking</a></p>
+</blockquote>
+<h3 id="Redis-命令"><a href="#Redis-命令" class="headerlink" title="Redis 命令"></a>Redis 命令</h3><ul>
+<li><p><strong>加锁</strong><br>SET NX 在key不存在的时候给key赋值，<br>PX通知 Redis 保存这个key 30000ms(锁过期时间),当资源被锁定超过过期时间时，锁自动释放<br>my_random_value 必须全局唯一</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SET resource_name my_random_value NX PX 30000</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>解锁</strong><br>根据my_random_value判断是否自己持有的锁，然后执行del</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> redis.call(<span class="string">"get"</span>,KEYS[<span class="number">1</span>]) == ARGV[<span class="number">1</span>] <span class="keyword">then</span> </span><br><span class="line">    <span class="keyword">return</span> redis.call(<span class="string">"del"</span>,KEYS[<span class="number">1</span>]) </span><br><span class="line"><span class="keyword">else</span> </span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span> </span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<a id="more"></a>
+<h3 id="Jedis-实现"><a href="#Jedis-实现" class="headerlink" title="Jedis 实现"></a>Jedis 实现</h3><ul>
+<li><p><strong>加锁</strong><br>value 使用UUID.randomUUID().toString()生成，也可以加入请求的唯一标识参数作为区分</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String LOCK_SUCCESS = <span class="string">"OK"</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String SET_IF_NOT_EXIST = <span class="string">"NX"</span>;</span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String SET_WITH_EXPIRE_TIME = <span class="string">"PX"</span>;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 尝试获取分布式锁</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> jedis Redis客户端</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> lockKey 锁Key</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> value 请求标识</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> expireTime 超期时间</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> 是否加锁成功</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">lock</span><span class="params">(Jedis jedis, String lockKey, String value, <span class="keyword">int</span> expireTime)</span> </span>&#123;</span><br><span class="line">    String result = jedis.set(lockKey, value, SET_IF_NOT_EXIST, SET_WITH_EXPIRE_TIME, expireTime);</span><br><span class="line">    <span class="keyword">if</span> (LOCK_SUCCESS.equals(result)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 错误代码: setnx expire在程序上分两步，会导致过期时间没有成功设置，导致死锁，则需要做额外的包装处理</span></span><br><span class="line">Long result = jedis.setnx(lockKey, value);</span><br><span class="line"><span class="keyword">if</span> (result == <span class="number">1</span>) &#123;</span><br><span class="line">    jedis.expire(lockKey, expireTime);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>解锁</strong><br>利用Redis结合lua脚本保证判断和解锁的操作在redis上是原子操作</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Long RELEASE_SUCCESS = <span class="number">1L</span>;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 释放分布式锁</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> jedis Redis客户端</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> lockKey 锁</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> value 加锁时生成的值</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> 是否释放成功</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">unlock</span><span class="params">(Jedis jedis, String lockKey, String value)</span> </span>&#123;</span><br><span class="line">    String script = <span class="string">"if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end"</span>;</span><br><span class="line">    Object result = jedis.eval(script, Collections.singletonList(lockKey), Collections.singletonList(value));</span><br><span class="line">    <span class="keyword">if</span> (RELEASE_SUCCESS.equals(result)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 错误代码：多线程环境下1和2是不同步的</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">unlock</span><span class="params">(Jedis jedis, String lockKey, String value)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (value.equals(jedis.get(lockKey))) &#123; <span class="comment">// 1</span></span><br><span class="line">	    jedis.del(lockKey);<span class="comment">// 2</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="setnx-expire-分两步的实现"><a href="#setnx-expire-分两步的实现" class="headerlink" title="setnx expire 分两步的实现"></a>setnx expire 分两步的实现</h3><p>公司框架对Jedis做了封装，没有使用上面的set加锁方法，而是setnx和expire两步走的方式, 则需要在外部加锁逻辑上加处理，解锁不变</p>
+<ul>
+<li><p><strong>加锁</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// cache</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">lock</span><span class="params">(String key, Object value, <span class="keyword">final</span> <span class="keyword">int</span> expireTime)</span> </span>&#123;</span><br><span class="line">	Long flag = sjedis.setnx(key, value);</span><br><span class="line">	<span class="keyword">boolean</span> result = (flag != <span class="keyword">null</span>) &amp;&amp; (flag.equals(Long.valueOf(<span class="number">1L</span>)));</span><br><span class="line">	<span class="keyword">if</span> (result &amp;&amp; expireTime &gt; <span class="number">0</span>) &#123;</span><br><span class="line">		sjedis.expire(key, expireTime);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>加锁封装</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">lockProxy</span><span class="params">(String key, Object value, <span class="keyword">final</span> <span class="keyword">int</span> expireTime)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">boolean</span> flag = cache.lock(key, value, expireTime);</span><br><span class="line">	<span class="keyword">if</span> (!flag &amp;&amp; (cache.ttl(key) == -<span class="number">1</span>)) &#123; <span class="comment">// 在加锁失败后ttl命令检查是否有超时时间，没有则需要补充上过期时间</span></span><br><span class="line">	    cache.setTtl(key, expireTime);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="Redis锁的局限性"><a href="#Redis锁的局限性" class="headerlink" title="Redis锁的局限性"></a>Redis锁的局限性</h3><p>当任务（业务）时间因为多种因数（Full GC, RPC timeout）导致锁超时过期自动释放了，会导致后面出现多个客户端持有同一个锁,HBase 遇到过这种问题<br><img src="/images/distributed_lock/lock_unsafe.png" alt="unsafe"><br>针对这种场景，需要使用fence，添加一个token或者version 来确保数据的正确性, 这就是一个典型的乐观锁实现<br><img src="/images/distributed_lock/lock_fencing-tokens.png" alt="fence"></p>
+<blockquote>
+<p>所以，使用redis锁的一个前提是任务时间不能太长，如果为了防止不可控因数例如Full GC则需要加入乐观锁来控制，或者需要确保锁过期时，任务处理需要停下来，如果真需要用到乐观锁机制的话，redis锁已经不适用这个场景了<br>FIXME 关于redlock算法的理解？</p>
+</blockquote>
+<h2 id="zookeeper分布式锁"><a href="#zookeeper分布式锁" class="headerlink" title="zookeeper分布式锁"></a>zookeeper分布式锁</h2><p>fixme <a href="https://blog.csdn.net/peace1213/article/details/52571445" target="_blank" rel="noopener">https://blog.csdn.net/peace1213/article/details/52571445</a><br><a href="https://dzone.com/articles/distributed-lock-using" target="_blank" rel="noopener">https://dzone.com/articles/distributed-lock-using</a><br><a href="http://colobu.com/2014/12/12/zookeeper-recipes-by-example-2/" target="_blank" rel="noopener">http://colobu.com/2014/12/12/zookeeper-recipes-by-example-2/</a></p>
+<h2 id="乐观锁"><a href="#乐观锁" class="headerlink" title="乐观锁"></a>乐观锁</h2><p>不加锁，通过token识别是否出现数据冲突，乐观锁适用于读多写少的应用场景，提高吞吐量</p>
+<ul>
+<li><p>vesion方式（version也可以使用时间戳代替）</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">UPDATE</span> table_name <span class="keyword">SET</span> xxx = #&#123;xxx&#125;, <span class="keyword">version</span>=<span class="keyword">version</span>+<span class="number">1</span> <span class="keyword">where</span> <span class="keyword">version</span> =#&#123;<span class="keyword">version</span>&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>不添加字段方式</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> stock <span class="keyword">FROM</span> tb_product <span class="keyword">where</span> product_id=#&#123;product_id&#125;;</span><br><span class="line"><span class="keyword">UPDATE</span> tb_product <span class="keyword">SET</span> stock=stock-#&#123;<span class="keyword">num</span>&#125; <span class="keyword">WHERE</span> product_id=#&#123;product_id&#125; <span class="keyword">AND</span> stock=#&#123;stock&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h2 id="curator"><a href="#curator" class="headerlink" title="curator"></a>curator</h2><p><a href="https://curator.apache.org/curator-x-async/index.html" target="_blank" rel="noopener">https://curator.apache.org/curator-x-async/index.html</a></p>
+<h2 id="CAS"><a href="#CAS" class="headerlink" title="CAS"></a>CAS</h2><p>Compare And Swap 比较交换技术，无锁的设计思路，设计上更复杂</p>
+<ul>
+<li><p>CAS算法<br>一个CAS方法包含三个参数CAS(V,E,N)。V表示要更新的变量，E表示预期的值，N表示新值。只有当V的值等于E时，才会将V的值修改为N。如果V的值不等于E，说明已经被其他线程修改了，当前线程可以放弃此操作，也可以再次尝试次操作直至修改成功。基于这样的算法，CAS操作即使没有锁，也可以发现其他线程对当前线程的干扰（临界区值的修改），并进行恰当的处理。</p>
+</li>
+<li><p>AtomicInteger</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// volatile保证内存可见性，循环调用unsafe.compareAndSwapInt进行赋值，Unsafe类内部使用了native的CAS逻辑。</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">int</span> value;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">getAndSet</span><span class="params">(<span class="keyword">int</span> newValue)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        <span class="keyword">int</span> current = get();</span><br><span class="line">        <span class="keyword">if</span> (compareAndSet(current, newValue))</span><br><span class="line">            <span class="keyword">return</span> current;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">compareAndSet</span><span class="params">(<span class="keyword">int</span> expect, <span class="keyword">int</span> update)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> unsafe.compareAndSwapInt(<span class="keyword">this</span>, valueOffset, expect, update);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>FIXME CAS无锁队列的实现：<a href="https://coolshell.cn/articles/8239.html" target="_blank" rel="noopener">https://coolshell.cn/articles/8239.html</a></p>
+</li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+            <a href="/tags/redlock/" rel="tag"># redlock</a>
+          
+            <a href="/tags/cas/" rel="tag"># cas</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/05/25/Storm学习/" rel="next" title="Storm学习">
+                <i class="fa fa-chevron-left"></i> Storm学习
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/05/26/zookeeper学习/" rel="prev" title="zookeeper学习">
+                zookeeper学习 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">sugengbin</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">42</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">34</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#特性"><span class="nav-number">1.</span> <span class="nav-text">特性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis分布式锁"><span class="nav-number">2.</span> <span class="nav-text">Redis分布式锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Redis-命令"><span class="nav-number">2.1.</span> <span class="nav-text">Redis 命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Jedis-实现"><span class="nav-number">2.2.</span> <span class="nav-text">Jedis 实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#setnx-expire-分两步的实现"><span class="nav-number">2.3.</span> <span class="nav-text">setnx expire 分两步的实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Redis锁的局限性"><span class="nav-number">2.4.</span> <span class="nav-text">Redis锁的局限性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#zookeeper分布式锁"><span class="nav-number">3.</span> <span class="nav-text">zookeeper分布式锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#乐观锁"><span class="nav-number">4.</span> <span class="nav-text">乐观锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#curator"><span class="nav-number">5.</span> <span class="nav-text">curator</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CAS"><span class="nav-number">6.</span> <span class="nav-text">CAS</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">sugengbin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Multithreading," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="极客时间链接Q: 什么情况下 Java 程序会产生死锁？如何定位、修复？  死锁 多线程环境下，多个线程之间，相互持有对方所需的锁，永久处于等待中  写一个死锁例子1234567891011121314151617181920212223242526272829303132public class DeadLockDemo extends Thread &amp;#123;    private Obj">
+<meta name="keywords" content="Multithreading">
+<meta property="og:type" content="article">
+<meta property="og:title" content="死锁分析">
+<meta property="og:url" content="http://yoursite.com/2018/06/20/死锁分析/index.html">
+<meta property="og:site_name" content="Knight Dawn">
+<meta property="og:description" content="极客时间链接Q: 什么情况下 Java 程序会产生死锁？如何定位、修复？  死锁 多线程环境下，多个线程之间，相互持有对方所需的锁，永久处于等待中  写一个死锁例子1234567891011121314151617181920212223242526272829303132public class DeadLockDemo extends Thread &amp;#123;    private Obj">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://yoursite.com/images/lock/jconsole1.png">
+<meta property="og:image" content="http://yoursite.com/images/lock/jconsole2.png">
+<meta property="og:image" content="http://yoursite.com/images/lock/jconsole3.png">
+<meta property="og:image" content="http://yoursite.com/images/lock/jconsole4.png">
+<meta property="og:updated_time" content="2018-06-24T13:55:20.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="死锁分析">
+<meta name="twitter:description" content="极客时间链接Q: 什么情况下 Java 程序会产生死锁？如何定位、修复？  死锁 多线程环境下，多个线程之间，相互持有对方所需的锁，永久处于等待中  写一个死锁例子1234567891011121314151617181920212223242526272829303132public class DeadLockDemo extends Thread &amp;#123;    private Obj">
+<meta name="twitter:image" content="http://yoursite.com/images/lock/jconsole1.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/06/20/死锁分析/"/>
+
+
+
+
+
+  <title>死锁分析 | Knight Dawn</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Knight Dawn</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/06/20/死锁分析/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="sugengbin">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Knight Dawn">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">死锁分析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-20T00:12:42+08:00">
+                2018-06-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p><a href="https://time.geekbang.org/column/article/9266" target="_blank" rel="noopener">极客时间链接</a><br>Q: 什么情况下 Java 程序会产生死锁？如何定位、修复？</p>
+</blockquote>
+<h2 id="死锁"><a href="#死锁" class="headerlink" title="死锁"></a>死锁</h2><blockquote>
+<p>多线程环境下，多个线程之间，相互持有对方所需的锁，永久处于等待中</p>
+</blockquote>
+<h2 id="写一个死锁例子"><a href="#写一个死锁例子" class="headerlink" title="写一个死锁例子"></a>写一个死锁例子</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DeadLockDemo</span> <span class="keyword">extends</span> <span class="title">Thread</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> Object first;</span><br><span class="line">    <span class="keyword">private</span> Object second;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DeadLockDemo</span><span class="params">(String name, Object first, Object second)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>(name);</span><br><span class="line">        <span class="keyword">this</span>.first = first;</span><br><span class="line">        <span class="keyword">this</span>.second = second;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (first) &#123;</span><br><span class="line">            System.out.println(getName() + <span class="string">" get lock "</span> + first.toString());</span><br><span class="line">            <span class="keyword">synchronized</span> (second) &#123;</span><br><span class="line">                System.out.println(getName() + <span class="string">" get lock "</span> + second.toString());</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        String a = <span class="string">"lockA"</span>;</span><br><span class="line">        String b = <span class="string">"lockB"</span>;</span><br><span class="line">        Thread thread1 = <span class="keyword">new</span> DeadLockDemo(<span class="string">"thread---a"</span>, a, b);</span><br><span class="line">        Thread thread2 = <span class="keyword">new</span> DeadLockDemo(<span class="string">"thread---b"</span>, b, a);</span><br><span class="line">        thread1.start();</span><br><span class="line">        thread2.start();</span><br><span class="line">        thread1.join();</span><br><span class="line">        thread2.join();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// </span></span><br><span class="line">output:</span><br><span class="line">thread---b get lock lockB</span><br><span class="line">thread---a get lock lockA</span><br></pre></td></tr></table></figure>
+<h2 id="定位死锁"><a href="#定位死锁" class="headerlink" title="定位死锁"></a>定位死锁</h2><h3 id="jstack-分析线程堆栈"><a href="#jstack-分析线程堆栈" class="headerlink" title="jstack 分析线程堆栈"></a>jstack 分析线程堆栈</h3><ul>
+<li><p>定位pid</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ps -ef|grep DeadLockDemo</span><br><span class="line">501 34056   288   0 12:12下午 ??         0:00.22 .../target/classes net.sudo.deadlock.DeadLockDemo</span><br><span class="line">501 34062 32674   0 12:12下午 ttys008    0:00.00 grep --color=auto --exclude-dir=.bzr --exclude-dir=CVS --exclude-dir=.git --exclude-dir=.hg --exclude-dir=.svn DeadLock</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>jstack命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">cd $&#123;JAVA_HOME&#125;/bin</span><br><span class="line">jstack 34056</span><br><span class="line"></span><br><span class="line">Found one Java-level deadlock:</span><br><span class="line">=============================</span><br><span class="line">"thread---b":</span><br><span class="line">  waiting to lock monitor 0x00007fd7e5080608 (object 0x000000076ac7b178, a java.lang.String),</span><br><span class="line">  which is held by "thread---a"</span><br><span class="line">"thread---a":</span><br><span class="line">  waiting to lock monitor 0x00007fd7e60079f8 (object 0x000000076ac7b1b0, a java.lang.String),</span><br><span class="line">  which is held by "thread---b"</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="ThreadMXBean"><a href="#ThreadMXBean" class="headerlink" title="ThreadMXBean"></a>ThreadMXBean</h3><ul>
+<li><p>新起一个线程定时扫描检查</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(<span class="number">1</span>);</span><br><span class="line">ThreadMXBean mbean = ManagementFactory.getThreadMXBean();</span><br><span class="line">scheduler.scheduleAtFixedRate(() -&gt; &#123;</span><br><span class="line">    <span class="keyword">long</span>[] threadIds = mbean.findDeadlockedThreads();</span><br><span class="line">    <span class="keyword">if</span> (threadIds != <span class="keyword">null</span>) &#123;</span><br><span class="line">        ThreadInfo[] threadInfos = mbean.getThreadInfo(threadIds);</span><br><span class="line">        System.out.println(<span class="string">"Detected deadlock threads:"</span>);</span><br><span class="line">        <span class="keyword">for</span> (ThreadInfo threadInfo : threadInfos) &#123;</span><br><span class="line">            System.out.println(<span class="string">"ThreadName: "</span> + threadInfo.getThreadName());</span><br><span class="line">            System.out.println(<span class="string">"ThreadState: "</span> + threadInfo.getThreadState());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;, <span class="number">5L</span>, <span class="number">10L</span>, TimeUnit.SECONDS);</span><br><span class="line"></span><br><span class="line">output:</span><br><span class="line">thread---a get lock lockA</span><br><span class="line">thread---b get lock lockB</span><br><span class="line">Detected deadlock threads:</span><br><span class="line">ThreadName: thread---b</span><br><span class="line">ThreadState: BLOCKED</span><br><span class="line">ThreadName: thread---a</span><br><span class="line">ThreadState: BLOCKED</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>ThreadMXBean扩展，打印所有线程</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ThreadMxBeanDemo</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        System.out.println(<span class="string">"hellWorld"</span>);</span><br><span class="line">        ThreadMXBean mbean = ManagementFactory.getThreadMXBean();</span><br><span class="line">        <span class="keyword">long</span>[] threadIds = mbean.getAllThreadIds();</span><br><span class="line">        <span class="keyword">if</span> (threadIds != <span class="keyword">null</span>) &#123;</span><br><span class="line">            ThreadInfo[] threadInfos = mbean.getThreadInfo(threadIds);</span><br><span class="line">            <span class="keyword">for</span> (ThreadInfo threadInfo : threadInfos) &#123;</span><br><span class="line">                System.out.println(<span class="string">"ThreadName: "</span> + threadInfo.getThreadName());</span><br><span class="line">                System.out.println(<span class="string">"ThreadState: "</span> + threadInfo.getThreadState());</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">output:</span><br><span class="line">hellWorld</span><br><span class="line">ThreadName: Monitor Ctrl-Break</span><br><span class="line">ThreadState: RUNNABLE</span><br><span class="line">ThreadName: Signal Dispatcher   -- jvm接收系统命令的线程</span><br><span class="line">ThreadState: RUNNABLE</span><br><span class="line">ThreadName: Finalizer    -- 处理Finalizer方法线程</span><br><span class="line">ThreadState: WAITING</span><br><span class="line">ThreadName: Reference Handler   --  处理引用对象的垃圾回收</span><br><span class="line">ThreadState: WAITING</span><br><span class="line">ThreadName: main       -- 主线程</span><br><span class="line">ThreadState: RUNNABLE</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="Jconsole"><a href="#Jconsole" class="headerlink" title="Jconsole"></a>Jconsole</h3><blockquote>
+<p>命令行下输入jconsole 打开<br><img src="/images/lock/jconsole1.png" alt="jconsole1"><br><img src="/images/lock/jconsole2.png" alt="jconsole2"><br><img src="/images/lock/jconsole3.png" alt="jconsole3"><br><img src="/images/lock/jconsole4.png" alt="jconsole4"></p>
+</blockquote>
+<h2 id="避免死锁"><a href="#避免死锁" class="headerlink" title="避免死锁"></a>避免死锁</h2><ul>
+<li>避免设计多个锁，让设计简单</li>
+<li>多个锁的情况要设置好获取顺序，通过多种场景的锁获取顺序图来判断是否存在循环等待情况</li>
+<li>使用超时的方法，或者使用ReentrantLock.tryLock非阻塞式方法</li>
+<li>FindBugs 静态代码检查的工具来发现一些场景的死锁问题</li>
+</ul>
+<h2 id="死循环导致的死锁"><a href="#死循环导致的死锁" class="headerlink" title="死循环导致的死锁"></a>死循环导致的死锁</h2><blockquote>
+<p>死循环死锁，认为是自旋死锁的一种，会导致其他线程阻塞，cpu使用时间片最高，可以用jstack来排查</p>
+</blockquote>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Multithreading/" rel="tag"># Multithreading</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/06/13/同步机制/" rel="next" title="同步机制">
+                <i class="fa fa-chevron-left"></i> 同步机制
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/06/20/并发集合工具/" rel="prev" title="并发集合工具">
+                并发集合工具 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">sugengbin</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">42</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">34</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#死锁"><span class="nav-number">1.</span> <span class="nav-text">死锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#写一个死锁例子"><span class="nav-number">2.</span> <span class="nav-text">写一个死锁例子</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#定位死锁"><span class="nav-number">3.</span> <span class="nav-text">定位死锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#jstack-分析线程堆栈"><span class="nav-number">3.1.</span> <span class="nav-text">jstack 分析线程堆栈</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ThreadMXBean"><span class="nav-number">3.2.</span> <span class="nav-text">ThreadMXBean</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Jconsole"><span class="nav-number">3.3.</span> <span class="nav-text">Jconsole</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#避免死锁"><span class="nav-number">4.</span> <span class="nav-text">避免死锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#死循环导致的死锁"><span class="nav-number">5.</span> <span class="nav-text">死循环导致的死锁</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">sugengbin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

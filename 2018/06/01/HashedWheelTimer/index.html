@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="timer,java,timing wheel,netty," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="场景 netty内部有一个时间轮的Timer来管理大量的定时调度，例如管理心跳检测  使用方法12345&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;io.netty&amp;lt;/groupId&amp;gt;    &amp;lt;artifactId&amp;gt;netty-all&amp;lt;/artifactId&amp;gt;    &amp;lt;version&amp;gt;4.1.4.Final&amp;lt;/ve">
+<meta name="keywords" content="timer,java,timing wheel,netty">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HashedWheelTimer">
+<meta property="og:url" content="http://yoursite.com/2018/06/01/HashedWheelTimer/index.html">
+<meta property="og:site_name" content="Knight Dawn">
+<meta property="og:description" content="场景 netty内部有一个时间轮的Timer来管理大量的定时调度，例如管理心跳检测  使用方法12345&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;io.netty&amp;lt;/groupId&amp;gt;    &amp;lt;artifactId&amp;gt;netty-all&amp;lt;/artifactId&amp;gt;    &amp;lt;version&amp;gt;4.1.4.Final&amp;lt;/ve">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://yoursite.com/images/timingwheel/netty-hasedwheeltimer.png">
+<meta property="og:image" content="http://yoursite.com/images/timingwheel/netty-hashedwheeltimer2.png">
+<meta property="og:image" content="http://yoursite.com/images/timingwheel/uml.png">
+<meta property="og:updated_time" content="2018-06-02T11:37:39.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HashedWheelTimer">
+<meta name="twitter:description" content="场景 netty内部有一个时间轮的Timer来管理大量的定时调度，例如管理心跳检测  使用方法12345&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;io.netty&amp;lt;/groupId&amp;gt;    &amp;lt;artifactId&amp;gt;netty-all&amp;lt;/artifactId&amp;gt;    &amp;lt;version&amp;gt;4.1.4.Final&amp;lt;/ve">
+<meta name="twitter:image" content="http://yoursite.com/images/timingwheel/netty-hasedwheeltimer.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/06/01/HashedWheelTimer/"/>
+
+
+
+
+
+  <title>HashedWheelTimer | Knight Dawn</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Knight Dawn</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/06/01/HashedWheelTimer/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="sugengbin">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Knight Dawn">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">HashedWheelTimer</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-06-01T17:17:55+08:00">
+                2018-06-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="场景"><a href="#场景" class="headerlink" title="场景"></a>场景</h2><blockquote>
+<p>netty内部有一个时间轮的Timer来管理大量的定时调度，例如管理心跳检测</p>
+</blockquote>
+<h2 id="使用方法"><a href="#使用方法" class="headerlink" title="使用方法"></a>使用方法</h2><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>io.netty<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>netty-all<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>4.1.4.Final<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(<span class="string">"yyyy-MM-dd HH:mm:ss"</span>);</span><br><span class="line">    HashedWheelTimer hashedWheelTimer = <span class="keyword">new</span> HashedWheelTimer(<span class="number">10</span>, TimeUnit.SECONDS);</span><br><span class="line">    System.out.println(<span class="string">"start:"</span> + LocalDateTime.now().format(formatter));</span><br><span class="line">    <span class="comment">// timeout1</span></span><br><span class="line">    Timeout t1 = hashedWheelTimer.newTimeout(timeout -&gt; &#123;</span><br><span class="line">        System.out.println(<span class="string">"task1 :"</span> + LocalDateTime.now().format(formatter));</span><br><span class="line">    &#125;, <span class="number">20</span>, TimeUnit.SECONDS);</span><br><span class="line">    <span class="comment">// timeout2</span></span><br><span class="line">    Timeout t2 = hashedWheelTimer.newTimeout(timeout -&gt; &#123;</span><br><span class="line">        System.out.println(<span class="string">"task2 :"</span> + LocalDateTime.now().format(formatter));</span><br><span class="line">    &#125;, <span class="number">20</span>, TimeUnit.SECONDS);</span><br><span class="line">    Thread.sleep(<span class="number">15000</span>);</span><br><span class="line">    t1.cancel();</span><br><span class="line">    System.out.println(<span class="string">"task1 cancel :"</span> + LocalDateTime.now().format(formatter));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><strong>output</strong><br>start:2018-06-01 18:33:41<br>task1 cancel :2018-06-01 18:33:56<br>task2 :2018-06-01 18:34:11</p>
+</blockquote>
+<a id="more"></a>
+<h2 id="时间轮算法"><a href="#时间轮算法" class="headerlink" title="时间轮算法"></a>时间轮算法</h2><ul>
+<li><p>经典图<br><img src="/images/timingwheel/netty-hasedwheeltimer.png" alt="timingWheel"></p>
+<blockquote>
+<p>时间轮一圈分为多个格子，每个格子代表一段时间，这个时间长短影响Timer精度，格子中包含落在这个格子的任务，每个任务带有一个round轮数，指针转动到一个格子，会检查任务的round，等于0则执行任务；任务添加到格子中需要根据一定的规则例如取模或者startTime等计算出deadline; netty timer的做法是在从一个队列中增量的添加到格子，根据deadline的计算。</p>
+</blockquote>
+</li>
+<li><p>多级时间轮<br><img src="/images/timingwheel/netty-hashedwheeltimer2.png" alt="timingWheels"></p>
+<blockquote>
+<p>单层的时间轮，在极端情况下，单个格子的链表很长，所以有了多级的时间轮设计 FIXME<br><a href="https://segmentfault.com/a/1190000005348993" target="_blank" rel="noopener">kafka分级时间轮</a></p>
+</blockquote>
+</li>
+</ul>
+<h2 id="性能测试评估"><a href="#性能测试评估" class="headerlink" title="性能测试评估"></a>性能测试评估</h2><blockquote>
+<p>添加任务 O(1)<br>取消任务 O(1)<br>执行任务 最差O(n)，格子越少，则链表越长，时间越长，如果格子越大，则链表越短，空间消耗越大<br>性能测试 FIXME</p>
+</blockquote>
+<h2 id="类图和时序图"><a href="#类图和时序图" class="headerlink" title="类图和时序图"></a>类图和时序图</h2><p><img src="/images/timingwheel/uml.png" alt="uml"></p>
+<ul>
+<li><strong>Timer 接口</strong><br>提供newTimeout方法定义创建新的任务，stop方法定义停止时间轮；</li>
+<li><strong>HashedWheelTimer 核心类：</strong><br>Timer的实现，创建时间轮的结构，初始化一个任务队列和一个取消的任务队列、格子bucket数组、格子大小tickDuration，创建work调度线程，当调用newTimeout时，判断work线程状态，第一次则启动调度线程；</li>
+<li><strong>HashedWheelBucket 格口类: </strong><br>保存任务类的链表结构，提供给队列放入timeout任务的方法，提供work调度执行任务的方法，提供执行完后或取消移除任务的方法；</li>
+<li><strong>HashedWheelTimeout 任务包装类：</strong><br>提供链表结构基础，提供任务的取消移除方法，以及任务状态的维护，提供任务的执行入口；</li>
+<li><strong>Worker 调度线程类：</strong><br>时间轮指针转动的调度逻辑，转动一个格子，将任务从队列中补充到该bucket中，处理round=0的任务，再处理已取消的任务；</li>
+</ul>
+<p>时序图 FIXME</p>
+<h2 id="代码细节"><a href="#代码细节" class="headerlink" title="代码细节"></a>代码细节</h2><h3 id="创建HashedWheelTimer"><a href="#创建HashedWheelTimer" class="headerlink" title="创建HashedWheelTimer"></a>创建HashedWheelTimer</h3><h4 id="初始化时间轮"><a href="#初始化时间轮" class="headerlink" title="初始化时间轮"></a>初始化时间轮</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 构造函数</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">HashedWheelTimer</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">        ThreadFactory threadFactory,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">long</span> tickDuration, TimeUnit unit, <span class="keyword">int</span> ticksPerWheel, <span class="keyword">boolean</span> leakDetection,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="keyword">long</span> maxPendingTimeouts)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 参数检查</span></span><br><span class="line">    <span class="keyword">if</span> (threadFactory == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException(<span class="string">"threadFactory"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (unit == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException(<span class="string">"unit"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (tickDuration &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"tickDuration must be greater than 0: "</span> + tickDuration);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (ticksPerWheel &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"ticksPerWheel must be greater than 0: "</span> + ticksPerWheel);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建bucket数组 Normalize ticksPerWheel to power of two and initialize the wheel.</span></span><br><span class="line">    wheel = createWheel(ticksPerWheel);</span><br><span class="line">    <span class="comment">// 由于tick 指针是递增的，tick &amp; mask 可以定位bucket的下标</span></span><br><span class="line">    mask = wheel.length - <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 统一转换为纳米单位 Convert tickDuration to nanos.</span></span><br><span class="line">    <span class="keyword">this</span>.tickDuration = unit.toNanos(tickDuration);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 判断一个格子时间是否太长而溢出 Prevent overflow.</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">this</span>.tickDuration &gt;= Long.MAX_VALUE / wheel.length) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(String.format(<span class="string">"tickDuration: %d (expected: 0 &lt; tickDuration in nanos &lt; %d"</span>, tickDuration, Long.MAX_VALUE / wheel.length));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 创建work调度线程(默认守护线程)</span></span><br><span class="line">    workerThread = threadFactory.newThread(worker);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 内存泄漏检测 FIXME	</span></span><br><span class="line">    leak = leakDetection || !workerThread.isDaemon() ? leakDetector.track(<span class="keyword">this</span>) : <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">this</span>.maxPendingTimeouts = maxPendingTimeouts;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (INSTANCE_COUNTER.incrementAndGet() &gt; INSTANCE_COUNT_LIMIT &amp;&amp;</span><br><span class="line">        WARNED_TOO_MANY_INSTANCES.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>)) &#123; <span class="comment">// CAS FIXME</span></span><br><span class="line">        reportTooManyInstances();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// mask标记的作用演示，下面可以得到0~7的下标，即时间轮的bucket下标</span></span><br><span class="line"><span class="keyword">int</span> mask = <span class="number">8</span> - <span class="number">1</span>;</span><br><span class="line"><span class="keyword">long</span> tick = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">    System.out.println(tick &amp; mask);</span><br><span class="line">    tick++;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="create-HashedWheelBucket"><a href="#create-HashedWheelBucket" class="headerlink" title="create HashedWheelBucket[]"></a>create HashedWheelBucket[]</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// createWheel</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> HashedWheelBucket[] createWheel(<span class="keyword">int</span> ticksPerWheel) &#123;</span><br><span class="line">    <span class="keyword">if</span> (ticksPerWheel &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(</span><br><span class="line">                <span class="string">"ticksPerWheel must be greater than 0: "</span> + ticksPerWheel);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (ticksPerWheel &gt; <span class="number">1073741824</span>) &#123; <span class="comment">// 不能大于 2^30</span></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(</span><br><span class="line">                <span class="string">"ticksPerWheel may not be greater than 2^30: "</span> + ticksPerWheel);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 调整标准化输入的数字为不大于2^n</span></span><br><span class="line">    ticksPerWheel = normalizeTicksPerWheel(ticksPerWheel);</span><br><span class="line">    <span class="comment">// 创建bucket数组</span></span><br><span class="line">    HashedWheelBucket[] wheel = <span class="keyword">new</span> HashedWheelBucket[ticksPerWheel];</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; wheel.length; i ++) &#123;</span><br><span class="line">        wheel[i] = <span class="keyword">new</span> HashedWheelBucket();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> wheel;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="标准化格子参数大小"><a href="#标准化格子参数大小" class="headerlink" title="标准化格子参数大小"></a>标准化格子参数大小</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// normalizeTicksPerWheel</span></span><br><span class="line"><span class="comment">// 算法：从1开始，循环左移1位，直到某个2^n结果符合要求</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">normalizeTicksPerWheel</span><span class="params">(<span class="keyword">int</span> ticksPerWheel)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> normalizedTicksPerWheel = <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">while</span> (normalizedTicksPerWheel &lt; ticksPerWheel) &#123;</span><br><span class="line">            normalizedTicksPerWheel &lt;&lt;= <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> normalizedTicksPerWheel;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// java8 hashmap的算法，跟上面的逻辑反过来, 效率更好，无符号右移1、2、4、8、16个位置，将ticksPerWheel后面的0都转换为了1</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">normalizeTicksPerWheel</span><span class="params">(<span class="keyword">int</span> ticksPerWheel)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n = ticksPerWheel - <span class="number">1</span>;</span><br><span class="line">    n |= n &gt;&gt;&gt; <span class="number">1</span>;</span><br><span class="line">    n |= n &gt;&gt;&gt; <span class="number">2</span>;</span><br><span class="line">    n |= n &gt;&gt;&gt; <span class="number">4</span>;</span><br><span class="line">    n |= n &gt;&gt;&gt; <span class="number">8</span>;</span><br><span class="line">    n |= n &gt;&gt;&gt; <span class="number">16</span>;</span><br><span class="line">    <span class="comment">// 这里1073741824 = 2^30,防止溢出</span></span><br><span class="line">    <span class="keyword">return</span> (n &lt; <span class="number">0</span>) ? <span class="number">1</span> : (n &gt;= <span class="number">1073741824</span>) ? <span class="number">1073741824</span> : n + <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line">例如：normalizeTicksPerWheel(<span class="number">513</span>)， <span class="number">2</span>^<span class="number">9</span> &lt; <span class="number">513</span> &lt; <span class="number">2</span>^<span class="number">10</span> -&gt; <span class="number">1024</span></span><br><span class="line"><span class="number">1000000000</span> <span class="number">512</span></span><br><span class="line"><span class="number">0100000000</span> <span class="number">512</span> &gt;&gt;&gt; <span class="number">1</span></span><br><span class="line"><span class="number">1100000000</span> <span class="number">768</span></span><br><span class="line"><span class="number">0011000000</span> <span class="number">768</span> &gt;&gt;&gt; <span class="number">2</span></span><br><span class="line"><span class="number">1111000000</span> <span class="number">960</span></span><br><span class="line"><span class="number">0000111100</span> <span class="number">960</span> &gt;&gt;&gt; <span class="number">4</span></span><br><span class="line"><span class="number">1111111100</span> <span class="number">1020</span></span><br><span class="line"><span class="number">0000000011</span> <span class="number">1020</span> &gt;&gt;&gt; <span class="number">8</span></span><br><span class="line"><span class="number">1111111111</span> <span class="number">1023</span></span><br><span class="line"><span class="number">0000000000</span> <span class="number">1023</span> &gt;&gt;&gt; <span class="number">16</span></span><br><span class="line"><span class="number">1111111111</span> <span class="number">1023</span></span><br><span class="line"><span class="number">1023</span> + <span class="number">1</span> = <span class="number">1024</span></span><br></pre></td></tr></table></figure>
+<h3 id="Timer添加timeout任务、启动"><a href="#Timer添加timeout任务、启动" class="headerlink" title="Timer添加timeout任务、启动"></a>Timer添加timeout任务、启动</h3><h4 id="newTimeout"><a href="#newTimeout" class="headerlink" title="newTimeout"></a>newTimeout</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Timeout <span class="title">newTimeout</span><span class="params">(TimerTask task, <span class="keyword">long</span> delay, TimeUnit unit)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (task == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException(<span class="string">"task"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (unit == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException(<span class="string">"unit"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 任务等待阈值的等待判断</span></span><br><span class="line">    <span class="keyword">long</span> pendingTimeoutsCount = pendingTimeouts.incrementAndGet();</span><br><span class="line">    <span class="keyword">if</span> (maxPendingTimeouts &gt; <span class="number">0</span> &amp;&amp; pendingTimeoutsCount &gt; maxPendingTimeouts) &#123;</span><br><span class="line">        pendingTimeouts.decrementAndGet();</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> RejectedExecutionException(<span class="string">"Number of pending timeouts ("</span></span><br><span class="line">            + pendingTimeoutsCount + <span class="string">") is greater than or equal to maximum allowed pending "</span></span><br><span class="line">            + <span class="string">"timeouts ("</span> + maxPendingTimeouts + <span class="string">")"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 只有任务进来才会判断是否启动work线程</span></span><br><span class="line">    start();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Add the timeout to the timeout queue which will be processed on the next tick.</span></span><br><span class="line">    <span class="comment">// During processing all the queued HashedWheelTimeouts will be added to the correct HashedWheelBucket.</span></span><br><span class="line">    <span class="comment">// 计算任务执行时间点到tick开始的时间长度</span></span><br><span class="line">    <span class="keyword">long</span> deadline = System.nanoTime() + unit.toNanos(delay) - startTime;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 检测数值溢出 Guard against overflow.</span></span><br><span class="line">    <span class="keyword">if</span> (delay &gt; <span class="number">0</span> &amp;&amp; deadline &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        deadline = Long.MAX_VALUE;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 创建HashedWheelTimeout</span></span><br><span class="line">    HashedWheelTimeout timeout = <span class="keyword">new</span> HashedWheelTimeout(<span class="keyword">this</span>, task, deadline);</span><br><span class="line">    <span class="comment">// 添加HashedWheelTimeout到一个JCTool的并发队列中 JCTool queue FIXME</span></span><br><span class="line">    timeouts.add(timeout);</span><br><span class="line">    <span class="comment">// 返回HashedWheelTimeout, 用户可以对timeout进行取消操作</span></span><br><span class="line">    <span class="keyword">return</span> timeout;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="时间轮start"><a href="#时间轮start" class="headerlink" title="时间轮start"></a>时间轮start</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">start</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// AtomicIntegerFieldUpdater 方式控制worker的状态 FIXME</span></span><br><span class="line">    <span class="keyword">switch</span> (WORKER_STATE_UPDATER.get(<span class="keyword">this</span>)) &#123;</span><br><span class="line">        <span class="keyword">case</span> WORKER_STATE_INIT:</span><br><span class="line">            <span class="comment">// CAS方式无锁方式控制状态的更新 FIXME</span></span><br><span class="line">            <span class="keyword">if</span> (WORKER_STATE_UPDATER.compareAndSet(<span class="keyword">this</span>, WORKER_STATE_INIT, WORKER_STATE_STARTED)) &#123;</span><br><span class="line">            	<span class="comment">// 状态更新成功，启动线程</span></span><br><span class="line">                workerThread.start();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> WORKER_STATE_STARTED:</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> WORKER_STATE_SHUTDOWN:</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"cannot be started once stopped"</span>);</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">"Invalid WorkerState"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Wait until the startTime is initialized by the worker.</span></span><br><span class="line">    <span class="comment">// 线程启动时第一步会创建startTime时间，等待startTime 创建成功后才往下走，才能计算task的deadline</span></span><br><span class="line">    <span class="keyword">while</span> (startTime == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            startTimeInitialized.await();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException ignore) &#123;</span><br><span class="line">            <span class="comment">// Ignore - it will be ready very soon.</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="时间轮stop"><a href="#时间轮stop" class="headerlink" title="时间轮stop"></a>时间轮stop</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> Set&lt;Timeout&gt; <span class="title">stop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Thread.currentThread() == workerThread) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(</span><br><span class="line">                HashedWheelTimer.class.getSimpleName() +</span><br><span class="line">                        <span class="string">".stop() cannot be called from "</span> +</span><br><span class="line">                        TimerTask.class.getSimpleName());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// CAS 方式更新状态为停止状态</span></span><br><span class="line">    <span class="keyword">if</span> (!WORKER_STATE_UPDATER.compareAndSet(<span class="keyword">this</span>, WORKER_STATE_STARTED, WORKER_STATE_SHUTDOWN)) &#123;</span><br><span class="line">        <span class="comment">// workerState can be 0 or 2 at this moment - let it always be 2.</span></span><br><span class="line">        <span class="keyword">if</span> (WORKER_STATE_UPDATER.getAndSet(<span class="keyword">this</span>, WORKER_STATE_SHUTDOWN) != WORKER_STATE_SHUTDOWN) &#123;</span><br><span class="line">            INSTANCE_COUNTER.decrementAndGet();</span><br><span class="line">            <span class="keyword">if</span> (leak != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">boolean</span> closed = leak.close(<span class="keyword">this</span>);</span><br><span class="line">                <span class="keyword">assert</span> closed;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> Collections.emptySet();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 中断workerThread FIXME</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">boolean</span> interrupted = <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">while</span> (workerThread.isAlive()) &#123;</span><br><span class="line">            workerThread.interrupt();</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                workerThread.join(<span class="number">100</span>);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (InterruptedException ignored) &#123;</span><br><span class="line">                interrupted = <span class="keyword">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (interrupted) &#123;</span><br><span class="line">            Thread.currentThread().interrupt();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        INSTANCE_COUNTER.decrementAndGet();</span><br><span class="line">        <span class="keyword">if</span> (leak != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">boolean</span> closed = leak.close(<span class="keyword">this</span>);</span><br><span class="line">            <span class="keyword">assert</span> closed;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 返回未处理的任务</span></span><br><span class="line">    <span class="keyword">return</span> worker.unprocessedTimeouts();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="时间轮调度逻辑"><a href="#时间轮调度逻辑" class="headerlink" title="时间轮调度逻辑"></a>时间轮调度逻辑</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 初始化时间轮调度开始的时间 Initialize the startTime.</span></span><br><span class="line">    startTime = System.nanoTime();</span><br><span class="line">    <span class="keyword">if</span> (startTime == <span class="number">0</span>) &#123;</span><br><span class="line">    	<span class="comment">// 这里要判断是否等于0是因为上面说到的线程启动时会等待startTime的初始化，0作为特殊标记不能是初始值</span></span><br><span class="line">        <span class="comment">// We use 0 as an indicator for the uninitialized value here, so make sure it's not 0 when initialized.</span></span><br><span class="line">        startTime = <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Notify the other threads waiting for the initialization at start().</span></span><br><span class="line">    <span class="comment">// CountDownLatch FIXME 唤醒在start那里阻塞的线程</span></span><br><span class="line">    startTimeInitialized.countDown();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">    	<span class="comment">// 指针走动到一个tick后返回当前tick的时间</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> deadline = waitForNextTick();</span><br><span class="line">        <span class="keyword">if</span> (deadline &gt; <span class="number">0</span>) &#123; <span class="comment">// 防止异常极端溢出情况</span></span><br><span class="line">        	<span class="comment">// 计算当前bucket的下标</span></span><br><span class="line">            <span class="keyword">int</span> idx = (<span class="keyword">int</span>) (tick &amp; mask); </span><br><span class="line">            <span class="comment">// 把取消队列里面的任务做取消操作</span></span><br><span class="line">            processCancelledTasks();</span><br><span class="line">            <span class="comment">// 获取对应格子</span></span><br><span class="line">            HashedWheelBucket bucket = wheel[idx];</span><br><span class="line">            <span class="comment">// 从队列中增量添加到对应的bucket中</span></span><br><span class="line">            transferTimeoutsToBuckets();</span><br><span class="line">            <span class="comment">// 执行到点的任务</span></span><br><span class="line">            bucket.expireTimeouts(deadline);</span><br><span class="line">            <span class="comment">// 等待下一个tick</span></span><br><span class="line">            tick++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">while</span> (WORKER_STATE_UPDATER.get(HashedWheelTimer.<span class="keyword">this</span>) == WORKER_STATE_STARTED);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Fill the unprocessedTimeouts so we can return them from stop() method.</span></span><br><span class="line">    <span class="keyword">for</span> (HashedWheelBucket bucket: wheel) &#123;</span><br><span class="line">        bucket.clearTimeouts(unprocessedTimeouts);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        HashedWheelTimeout timeout = timeouts.poll();</span><br><span class="line">        <span class="keyword">if</span> (timeout == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (!timeout.isCancelled()) &#123;</span><br><span class="line">            unprocessedTimeouts.add(timeout);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 处理取消队列的任务</span></span><br><span class="line">    processCancelledTasks();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// waitForNextTick</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">long</span> <span class="title">waitForNextTick</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">// 计算当前tick的deadline</span></span><br><span class="line">    <span class="keyword">long</span> deadline = tickDuration * (tick + <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> currentTime = System.nanoTime() - startTime;</span><br><span class="line">        <span class="comment">// 计算需要睡眠的时间，999999是为了弥补sleep按ms单位带来的精度问题</span></span><br><span class="line">        <span class="keyword">long</span> sleepTimeMs = (deadline - currentTime + <span class="number">999999</span>) / <span class="number">1000000</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (sleepTimeMs &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (currentTime == Long.MIN_VALUE) &#123;<span class="comment">// FIXME</span></span><br><span class="line">                <span class="keyword">return</span> -Long.MAX_VALUE;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> currentTime;<span class="comment">// 返回当前时间</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Check if we run on windows, as if thats the case we will need</span></span><br><span class="line">        <span class="comment">// to round the sleepTime as workaround for a bug that only affect</span></span><br><span class="line">        <span class="comment">// the JVM if it runs on windows.</span></span><br><span class="line">        <span class="comment">//</span></span><br><span class="line">        <span class="comment">// See https://github.com/netty/netty/issues/356</span></span><br><span class="line">        <span class="keyword">if</span> (PlatformDependent.isWindows()) &#123;</span><br><span class="line">            sleepTimeMs = sleepTimeMs / <span class="number">10</span> * <span class="number">10</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">        	<span class="comment">// 开始睡眠需要等待的时间</span></span><br><span class="line">            Thread.sleep(sleepTimeMs);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException ignored) &#123;</span><br><span class="line">            <span class="keyword">if</span> (WORKER_STATE_UPDATER.get(HashedWheelTimer.<span class="keyword">this</span>) == WORKER_STATE_SHUTDOWN) &#123;</span><br><span class="line">                <span class="keyword">return</span> Long.MIN_VALUE;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// processCancelledTasks</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">processCancelledTasks</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        <span class="comment">// 这里使用了queue的pop</span></span><br><span class="line">        HashedWheelTimeout timeout = cancelledTimeouts.poll();</span><br><span class="line">        <span class="keyword">if</span> (timeout == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="comment">// all processed</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">        	<span class="comment">//  将任务从对应的bucket移除</span></span><br><span class="line">            timeout.remove();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">            <span class="keyword">if</span> (logger.isWarnEnabled()) &#123;</span><br><span class="line">                logger.warn(<span class="string">"An exception was thrown while process a cancellation task"</span>, t);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// transferTimeoutsToBuckets</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">transferTimeoutsToBuckets</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">// 每个tick只增量补充前10W个任务，如果少于10W会按对应个数进行遍历</span></span><br><span class="line">    <span class="comment">// transfer only max. 100000 timeouts per tick to prevent a thread to stale the workerThread when it just</span></span><br><span class="line">    <span class="comment">// adds new timeouts in a loop.</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100000</span>; i++) &#123;</span><br><span class="line">        HashedWheelTimeout timeout = timeouts.poll();</span><br><span class="line">        <span class="keyword">if</span> (timeout == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="comment">// all processed</span></span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (timeout.state() == HashedWheelTimeout.ST_CANCELLED) &#123;</span><br><span class="line">            <span class="comment">// Was cancelled in the meantime.</span></span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 计算task从startTime开始需要经历多少个tick</span></span><br><span class="line">        <span class="keyword">long</span> calculated = timeout.deadline / tickDuration;</span><br><span class="line">        <span class="comment">// 减去已经走过的tick数，然后除以bucket个数，得到需要走多少round</span></span><br><span class="line">        timeout.remainingRounds = (calculated - tick) / wheel.length;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 如果队列等待太久，过了处理时间，则按当前tick进行处理</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">long</span> ticks = Math.max(calculated, tick); <span class="comment">// Ensure we don't schedule for past.</span></span><br><span class="line">        <span class="comment">// 计算对应的bucket数组下标</span></span><br><span class="line">        <span class="keyword">int</span> stopIndex = (<span class="keyword">int</span>) (ticks &amp; mask);</span><br><span class="line">        <span class="comment">// 添加timeout到bucket中</span></span><br><span class="line">        HashedWheelBucket bucket = wheel[stopIndex];</span><br><span class="line">        bucket.addTimeout(timeout);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="HashedWheelBucket的链表结构"><a href="#HashedWheelBucket的链表结构" class="headerlink" title="HashedWheelBucket的链表结构"></a>HashedWheelBucket的链表结构</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">HashedWheelBucket</span> </span>&#123;</span><br><span class="line">    <span class="comment">// Used for the linked-list datastructure</span></span><br><span class="line">    <span class="comment">// 链表头</span></span><br><span class="line">    <span class="keyword">private</span> HashedWheelTimeout head;</span><br><span class="line">    <span class="comment">// 链表尾</span></span><br><span class="line">    <span class="keyword">private</span> HashedWheelTimeout tail;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 添加元素：在链表尾插入元素</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addTimeout</span><span class="params">(HashedWheelTimeout timeout)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">assert</span> timeout.bucket == <span class="keyword">null</span>;</span><br><span class="line">        timeout.bucket = <span class="keyword">this</span>;</span><br><span class="line">        <span class="keyword">if</span> (head == <span class="keyword">null</span>) &#123;</span><br><span class="line">            head = tail = timeout;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            tail.next = timeout;</span><br><span class="line">            timeout.prev = tail;</span><br><span class="line">            tail = timeout;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 移除元素：前一个的nex指向timeout的next, 后一个的prev指向timeout的prev </span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> HashedWheelTimeout <span class="title">remove</span><span class="params">(HashedWheelTimeout timeout)</span> </span>&#123;</span><br><span class="line">        HashedWheelTimeout next = timeout.next;</span><br><span class="line">        <span class="comment">// remove timeout that was either processed or cancelled by updating the linked-list</span></span><br><span class="line">        <span class="keyword">if</span> (timeout.prev != <span class="keyword">null</span>) &#123;</span><br><span class="line">            timeout.prev.next = next;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (timeout.next != <span class="keyword">null</span>) &#123;</span><br><span class="line">            timeout.next.prev = timeout.prev;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (timeout == head) &#123;</span><br><span class="line">            <span class="comment">// if timeout is also the tail we need to adjust the entry too</span></span><br><span class="line">            <span class="keyword">if</span> (timeout == tail) &#123;</span><br><span class="line">                tail = <span class="keyword">null</span>;</span><br><span class="line">                head = <span class="keyword">null</span>;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                head = next;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (timeout == tail) &#123;</span><br><span class="line">            <span class="comment">// if the timeout is the tail modify the tail to be the prev node.</span></span><br><span class="line">            tail = timeout.prev;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// null out prev, next and bucket to allow for GC.</span></span><br><span class="line">        timeout.prev = <span class="keyword">null</span>;</span><br><span class="line">        timeout.next = <span class="keyword">null</span>;</span><br><span class="line">        timeout.bucket = <span class="keyword">null</span>;</span><br><span class="line">        timeout.timer.pendingTimeouts.decrementAndGet();</span><br><span class="line">        <span class="keyword">return</span> next;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 遍历元素 （链表指针遍历）</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">expireTimeouts</span><span class="params">(<span class="keyword">long</span> deadline)</span> </span>&#123;</span><br><span class="line">        HashedWheelTimeout timeout = head;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// process all timeouts</span></span><br><span class="line">        <span class="keyword">while</span> (timeout != <span class="keyword">null</span>) &#123;</span><br><span class="line">            HashedWheelTimeout next = timeout.next;</span><br><span class="line">            <span class="keyword">if</span> (timeout.remainingRounds &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">                next = remove(timeout);</span><br><span class="line">                <span class="keyword">if</span> (timeout.deadline &lt;= deadline) &#123;</span><br><span class="line">                    timeout.expire();</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="comment">// The timeout was placed into a wrong slot. This should never happen.</span></span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(String.format(</span><br><span class="line">                            <span class="string">"timeout.deadline (%d) &gt; deadline (%d)"</span>, timeout.deadline, deadline));</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (timeout.isCancelled()) &#123;</span><br><span class="line">                next = remove(timeout);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                timeout.remainingRounds --;</span><br><span class="line">            &#125;</span><br><span class="line">            timeout = next;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">clearTimeouts</span><span class="params">(Set&lt;Timeout&gt; set)</span> </span>&#123;</span><br><span class="line">        <span class="comment">// 省略，这里是从链表头开始逐个的取出放到set中</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="扩展知识点、思考-FIXME"><a href="#扩展知识点、思考-FIXME" class="headerlink" title="扩展知识点、思考 FIXME"></a>扩展知识点、思考 FIXME</h2><blockquote>
+<p>确定不大于2^n数字方法<br>链表结构设计<br>睡眠时间精度问题<br>JCTool的并发队列<br>存储泄漏检测<br>数值精度的判断<br>Atomic* 类的CAS并发无锁更新<br>AtomicIntegerFieldUpdater的CAS<br>线程之间等待的操作 startTime初始化 CountDownLatch</p>
+</blockquote>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/timer/" rel="tag"># timer</a>
+          
+            <a href="/tags/java/" rel="tag"># java</a>
+          
+            <a href="/tags/timing-wheel/" rel="tag"># timing wheel</a>
+          
+            <a href="/tags/netty/" rel="tag"># netty</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/05/30/springboot知识点积累/" rel="next" title="springboot知识点积累">
+                <i class="fa fa-chevron-left"></i> springboot知识点积累
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/06/12/ThreadPoolExecutor/" rel="prev" title="ThreadPoolExecutor">
+                ThreadPoolExecutor <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">sugengbin</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">42</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">34</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#场景"><span class="nav-number">1.</span> <span class="nav-text">场景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用方法"><span class="nav-number">2.</span> <span class="nav-text">使用方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#时间轮算法"><span class="nav-number">3.</span> <span class="nav-text">时间轮算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#性能测试评估"><span class="nav-number">4.</span> <span class="nav-text">性能测试评估</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#类图和时序图"><span class="nav-number">5.</span> <span class="nav-text">类图和时序图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#代码细节"><span class="nav-number">6.</span> <span class="nav-text">代码细节</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#创建HashedWheelTimer"><span class="nav-number">6.1.</span> <span class="nav-text">创建HashedWheelTimer</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#初始化时间轮"><span class="nav-number">6.1.1.</span> <span class="nav-text">初始化时间轮</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#create-HashedWheelBucket"><span class="nav-number">6.1.2.</span> <span class="nav-text">create HashedWheelBucket[]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#标准化格子参数大小"><span class="nav-number">6.1.3.</span> <span class="nav-text">标准化格子参数大小</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Timer添加timeout任务、启动"><span class="nav-number">6.2.</span> <span class="nav-text">Timer添加timeout任务、启动</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#newTimeout"><span class="nav-number">6.2.1.</span> <span class="nav-text">newTimeout</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#时间轮start"><span class="nav-number">6.2.2.</span> <span class="nav-text">时间轮start</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#时间轮stop"><span class="nav-number">6.2.3.</span> <span class="nav-text">时间轮stop</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#时间轮调度逻辑"><span class="nav-number">6.3.</span> <span class="nav-text">时间轮调度逻辑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HashedWheelBucket的链表结构"><span class="nav-number">6.4.</span> <span class="nav-text">HashedWheelBucket的链表结构</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#扩展知识点、思考-FIXME"><span class="nav-number">7.</span> <span class="nav-text">扩展知识点、思考 FIXME</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">sugengbin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

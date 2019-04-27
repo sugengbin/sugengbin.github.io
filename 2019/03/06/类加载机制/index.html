@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Class-Loader,java-agent," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="版本：java8 类加载过程是怎样的？运行时，虚拟机把描述类的数据从Class文件加载到内存中，并对数据进行验证，准备，解析，初始化的一个过程，最终是可以被虚拟机直接使用的java类型加载 -&amp;gt; 连接(验证、准备、解析) -&amp;gt; 初始化 -&amp;gt; 使用 -&amp;gt; 卸载如果输入数据不是 ClassFile 的结构，则会抛出 ClassFormatError  加载通过全限定类名加载二进">
+<meta name="keywords" content="Class-Loader,java-agent">
+<meta property="og:type" content="article">
+<meta property="og:title" content="类加载机制">
+<meta property="og:url" content="http://yoursite.com/2019/03/06/类加载机制/index.html">
+<meta property="og:site_name" content="Knight Dawn">
+<meta property="og:description" content="版本：java8 类加载过程是怎样的？运行时，虚拟机把描述类的数据从Class文件加载到内存中，并对数据进行验证，准备，解析，初始化的一个过程，最终是可以被虚拟机直接使用的java类型加载 -&amp;gt; 连接(验证、准备、解析) -&amp;gt; 初始化 -&amp;gt; 使用 -&amp;gt; 卸载如果输入数据不是 ClassFile 的结构，则会抛出 ClassFormatError  加载通过全限定类名加载二进">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-03-21T13:10:32.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="类加载机制">
+<meta name="twitter:description" content="版本：java8 类加载过程是怎样的？运行时，虚拟机把描述类的数据从Class文件加载到内存中，并对数据进行验证，准备，解析，初始化的一个过程，最终是可以被虚拟机直接使用的java类型加载 -&amp;gt; 连接(验证、准备、解析) -&amp;gt; 初始化 -&amp;gt; 使用 -&amp;gt; 卸载如果输入数据不是 ClassFile 的结构，则会抛出 ClassFormatError  加载通过全限定类名加载二进">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2019/03/06/类加载机制/"/>
+
+
+
+
+
+  <title>类加载机制 | Knight Dawn</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Knight Dawn</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/06/类加载机制/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="sugengbin">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Knight Dawn">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">类加载机制</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-06T22:34:41+08:00">
+                2019-03-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>版本：java8</p>
+<h3 id="类加载过程是怎样的？"><a href="#类加载过程是怎样的？" class="headerlink" title="类加载过程是怎样的？"></a>类加载过程是怎样的？</h3><p>运行时，虚拟机把描述类的数据从Class文件加载到内存中，并对数据进行验证，准备，解析，初始化的一个过程，最终是可以被虚拟机直接使用的java类型<br>加载 -&gt; 连接(验证、准备、解析) -&gt; 初始化 -&gt; 使用 -&gt; 卸载<br>如果输入数据不是 ClassFile 的结构，则会抛出 ClassFormatError</p>
+<ul>
+<li>加载<br>通过全限定类名加载二进制流，静态存储结构转换方法区中运行时的数据结构，生成java.lang.Class对象，作为类数据的访问入口；(Class对象干嘛的？)</li>
+<li>连接<br>1、验证：文件格式、元数据、字节码、符号引用<br>2、准备：类静态变量分配内存、初始化系统默认值，主要在分配内存，不会执行具体的指令<br>3、解析：常量池的符号引用转为直接引用 （符号引用与直接引用的概念？）</li>
+<li>初始化<br>执行类里面的初始化代码逻辑，对 自定义类变量的赋值，先初始化加载父类再到子类<br>触发：创建对象实例;反射；调用静态方法静态字段；启动main方法类</li>
+</ul>
+<h4 id="Class-对象"><a href="#Class-对象" class="headerlink" title="Class 对象"></a>Class 对象</h4><ul>
+<li>定义<br>Class 类的一种，只有私有构造函数，只能jvm创建加载，为运行时类型识别提供类型信息，每个类有一个Class对象，不管多少个实例对象;</li>
+<li>获取Class<br>1、Object的getClass方法：Object是最顶层类，所以这个时候会触发类的加载初始化；<br>2、Class.forName(“”) ：通过全限定类名获取Class对象，会触发类的加载初始化；<br>3、字面量.class：Class对象在类加载阶段，所以不会触发初始化。</li>
+<li>泛型Class<br>1、通过指定泛型，保证使用时正确的类型，运行时会擦除；<br>2、Class&lt;?&gt; 使用任意类型的泛型；<br>3、Class&lt;? extends 父类&gt; 指定某父类下的子类，将类型检查提前到编译期。</li>
+<li>强制转换<br>强制转换时，本质上是获取Class对象，调用cast方法进行转换；</li>
+<li>反射TODO</li>
+</ul>
+<h4 id="符号引用与直接引用"><a href="#符号引用与直接引用" class="headerlink" title="符号引用与直接引用"></a>符号引用与直接引用</h4><ul>
+<li>符号引用：符号文本的形式表示引用之间的关系；</li>
+<li>直接引用：jvm里面的内存区域字节码的起始位置，或者偏移量，用于间接定位的句柄；</li>
+<li>转换：将常量池那块的符号引用，转换为直接引用，jvm运行时能定位到具体的内存位置，转换过程具体用到了方法表以及更底层的 TODO</li>
+</ul>
+<h3 id="什么是双亲委派模型？"><a href="#什么是双亲委派模型？" class="headerlink" title="什么是双亲委派模型？"></a>什么是双亲委派模型？</h3><p>为了避免重复加载类，子类加载器会委托父加载类加载去加载，如果父加载器找不到，子加载器才会进行加载。</p>
+<h3 id="有哪些类加载器，分别起什么作用？"><a href="#有哪些类加载器，分别起什么作用？" class="headerlink" title="有哪些类加载器，分别起什么作用？"></a>有哪些类加载器，分别起什么作用？</h3><ul>
+<li><p>Bootstrap Class loader<br>jvm内部本地实现，XX.class.getClassLoader显示为null,加载$JAVA_HOME/jre/lib下的包，同时也加载其他的类加载器；</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// java8及以下</span></span><br><span class="line"># 指定新的 bootclasspath，替换 java.* 包的内部实现</span><br><span class="line">java -Xbootclasspath:&lt;your_boot_classpath&gt; your_App</span><br><span class="line"># a 意味着 append，将指定目录添加到 bootclasspath 后面</span><br><span class="line">java -Xbootclasspath/a:&lt;your_dir&gt; your_App</span><br><span class="line"># p 意味着 prepend，将指定目录添加到 bootclasspath 前面</span><br><span class="line">java -Xbootclasspath/p:&lt;your_dir&gt; your_App</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Extension Class loader<br>加载Java标准扩展库，$JAVA_HOME/lib/ext</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 覆盖ext目录</span></span><br><span class="line">java -Djava.ext.dirs=your_ext_dir HelloWorld</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>Application Class loader<br>加载环境变量-classpath下的包</p>
+</li>
+<li>自定义类加载器</li>
+<li>JDK9 的layer层级 TODO</li>
+</ul>
+<h3 id="如何自定义类加载器-应用场景？"><a href="#如何自定义类加载器-应用场景？" class="headerlink" title="如何自定义类加载器? 应用场景？"></a>如何自定义类加载器? 应用场景？</h3><ul>
+<li>1、容器的实现上采用自定义类加载器来加载容器需要的包：tomcat；</li>
+<li>2、热部署；</li>
+<li>3、导入不同版本的同名包：import其中一个版本，另一个版本通过类加载器加载，用反射方式获得另一个版本包的方法；</li>
+<li><p>4、代码保护：先字节码加密，加载类的时候必须对字节码进行解密，通过重写findClass读取URL中的字节码，然后解密，最后把字节数组交给defineClass()加载;</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">protected</span> Class&lt;?&gt; findClass(String name) <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line">    <span class="keyword">byte</span>[] data = <span class="keyword">this</span>.loadClassData(name);<span class="comment">// 文件流进行加载，然后解密，可以通过异或0xff的方式先加密再解密</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>.defineClass(name, data, <span class="number">0</span>, data.length);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>5、加载网络来源的字节码信息。</p>
+</li>
+</ul>
+<h3 id="java-lang-ClassLoader"><a href="#java-lang-ClassLoader" class="headerlink" title="java.lang.ClassLoader"></a>java.lang.ClassLoader</h3><ul>
+<li>loadClass : 先在已加载中寻找，然后调用父加载器进行加载，最后通过findClass进行加载，resolve=false则只检查类是否存在不进行解析；</li>
+<li>defineClass：通过byte数组转换为对象实例；</li>
+<li>findClass：由子类加载器进行扩展实现；</li>
+</ul>
+<h3 id="如何降低类加载的开销"><a href="#如何降低类加载的开销" class="headerlink" title="如何降低类加载的开销?"></a>如何降低类加载的开销?</h3><p>APPCDS,通过对类进行预处理到一个归档文件，jvm将归档文件映射到内存，减少类的加载开销；CDS概念在Java5提出，Java10得到扩展。TODO<br><a href="http://ju.outofmemory.cn/entry/347945/" target="_blank" rel="noopener">java10新特性APPCDS</a></p>
+<h3 id="什么是-Jar-Hell-问题？"><a href="#什么是-Jar-Hell-问题？" class="headerlink" title="什么是 Jar Hell 问题？"></a>什么是 Jar Hell 问题？</h3><p>出现classNotFoundException / NoClassDefFoundError,或者在某个环境服务器正常，另一个环境服务器异常，或者新加包更新包出现异常；这些状况就是出现了jar hell的问题，一般情况是依赖不清晰，传递依赖问题，包版本冲突导致；借助构建工具减少这类问题，例如maven、gradle. 或者使用组件系统来分隔依赖程度。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">   ClassLoader classLoader = Thread.currentThread().getContextClassLoader();</span><br><span class="line">   String resourceName = <span class="string">"net/sf/cglib/proxy/MethodInterceptor.class"</span>;</span><br><span class="line">   Enumeration&lt;URL&gt; urls = classLoader.getResources(resourceName);</span><br><span class="line">   <span class="keyword">while</span>(urls.hasMoreElements())&#123;</span><br><span class="line">    System.out.println(urls.nextElement());</span><br><span class="line">   &#125;</span><br><span class="line">&#125; <span class="keyword">catch</span> (IOException e) &#123;</span><br><span class="line">   e.printStackTrace();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="热部署、java-agent"><a href="#热部署、java-agent" class="headerlink" title="热部署、java agent"></a>热部署、java agent</h3><h4 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h4><p>javaagent,加载 class 文件之前做拦截可以对字节码做修改，运行时对已加载的字节码做修改，不侵入性的对应用功能做监控增强；<br>eclipse的调试功能、热部署实现<br>通过自定义类加载器实现热部署过程，字节码修改后重新触发类加载的过程；Java agent是不修改原有字节码，当字节码加载进来时，对加载进来的字节码进行修改的过程；</p>
+<h4 id="premain实现"><a href="#premain实现" class="headerlink" title="premain实现"></a>premain实现</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 增强</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleClassTransformer</span> <span class="keyword">implements</span> <span class="title">ClassFileTransformer</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">byte</span>[] transform(<span class="keyword">final</span> ClassLoader loader, <span class="keyword">final</span> String className, <span class="keyword">final</span> Class&lt;?&gt; classBeingRedefined,</span><br><span class="line">            <span class="keyword">final</span> ProtectionDomain protectionDomain, <span class="keyword">final</span> <span class="keyword">byte</span>[] classfileBuffer) <span class="keyword">throws</span> IllegalClassFormatException &#123;</span><br><span class="line">        <span class="keyword">if</span> (className.endsWith(<span class="string">"sun/net/www/protocol/http/HttpURLConnection"</span>)) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="keyword">final</span> ClassPool classPool = ClassPool.getDefault();</span><br><span class="line">                <span class="keyword">final</span> CtClass clazz = classPool.get(<span class="string">"sun.net.www.protocol.http.HttpURLConnection"</span>);</span><br><span class="line">                <span class="keyword">for</span> (<span class="keyword">final</span> CtConstructor constructor : clazz.getConstructors()) &#123;</span><br><span class="line">                    constructor.insertAfter(<span class="string">"System.out.println(this.getURL());"</span>);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">byte</span>[] byteCode = clazz.toBytecode();</span><br><span class="line">                clazz.detach();</span><br><span class="line">                <span class="keyword">return</span> byteCode;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (<span class="keyword">final</span> NotFoundException | CannotCompileException | IOException ex) &#123;</span><br><span class="line">                ex.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// agent 实现类</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SimpleAgent</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">premain</span><span class="params">(String agentArgs, Instrumentation inst)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> SimpleClassTransformer transformer = <span class="keyword">new</span> SimpleClassTransformer();</span><br><span class="line">        inst.addTransformer(transformer);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">#添加src/META-INF/MANIFEST.MF</span><br><span class="line">Manifest-Version: 1.0</span><br><span class="line">Premain-Class: SimpleAgent的全限定名</span><br><span class="line">#gradle方式</span><br><span class="line">jar &#123;</span><br><span class="line">        manifest &#123;</span><br><span class="line">            attributes &apos;Implementation-Version&apos;: &apos;1.0&apos;</span><br><span class="line">            attributes &apos;Premain-Class&apos;: &apos;SimpleAgent的全限定名&apos;</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// test</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AgentDemo</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">( String[] args )</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        fetch(<span class="string">"http://www.baidu.com"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">fetch</span><span class="params">(<span class="keyword">final</span> String address)</span> </span></span><br><span class="line"><span class="function">            <span class="keyword">throws</span> MalformedURLException, IOException </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> URL url = <span class="keyword">new</span> URL(address);                </span><br><span class="line">        <span class="keyword">final</span> URLConnection connection = url.openConnection();</span><br><span class="line">        <span class="keyword">try</span>( <span class="keyword">final</span> BufferedReader in = <span class="keyword">new</span> BufferedReader(</span><br><span class="line">                <span class="keyword">new</span> InputStreamReader( connection.getInputStream() ) ) ) &#123;</span><br><span class="line">            String inputLine = <span class="keyword">null</span>;</span><br><span class="line">            <span class="keyword">final</span> StringBuffer sb = <span class="keyword">new</span> StringBuffer();</span><br><span class="line">            <span class="keyword">while</span> ( ( inputLine = in.readLine() ) != <span class="keyword">null</span>) &#123;</span><br><span class="line">                sb.append(inputLine);</span><br><span class="line">            &#125;       </span><br><span class="line">            System.out.println(<span class="string">"Content size: "</span> + sb.length());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 运行添加参数 -javaagent:myAgent.jar</span></span><br><span class="line"><span class="comment">// output:</span></span><br><span class="line"><span class="comment">// http://www.baidu.com</span></span><br><span class="line"><span class="comment">// Content size: 2283</span></span><br></pre></td></tr></table></figure>
+<h4 id="agentmain实现"><a href="#agentmain实现" class="headerlink" title="agentmain实现"></a>agentmain实现</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// agent 增强</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AgentmainAgent</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">agentmain</span><span class="params">(String agentArgs, Instrumentation inst)</span> <span class="keyword">throws</span> UnmodifiableClassException </span>&#123;</span><br><span class="line">        inst.addTransformer(<span class="keyword">new</span> ClassFileTransformer() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">byte</span>[] transform(ClassLoader loader, String className, Class&lt;?&gt; classBeingRedefined,</span><br><span class="line">                    ProtectionDomain protectionDomain, <span class="keyword">byte</span>[] classfileBuffer) <span class="keyword">throws</span> IllegalClassFormatException &#123;</span><br><span class="line">                System.out.println(<span class="string">"agentmain load Class  :"</span> + className);</span><br><span class="line">                <span class="keyword">return</span> classfileBuffer;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, <span class="keyword">true</span>);</span><br><span class="line">        inst.retransformClasses(TestAgent.class);<span class="comment">// 需要指定对应重定义类Class对象</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#添加src/META-INF/MANIFEST.MF </span><br><span class="line">Manifest-Version: 1.0</span><br><span class="line">Agent-Class: AgentmainAgent的全限定类名</span><br><span class="line">Can-Retransform-Classes: true</span><br><span class="line">Can-Redefine-Classes: true</span><br><span class="line">#gradle方式</span><br><span class="line">manifest &#123;</span><br><span class="line">            attributes &apos;Implementation-Version&apos;: version</span><br><span class="line">            ttributes &apos;Agent-Class&apos;: &apos;AgentmainAgent的全限定类名&apos;</span><br><span class="line">            attributes &apos;Can-Retransform-Classes&apos;: &apos;true&apos;</span><br><span class="line">            attributes &apos;Can-Redefine-Classes&apos;: &apos;true&apos;</span><br><span class="line">        &#125;</span><br><span class="line">#MANIFEST.MF 和AgentmainAgent 一起打成jar包</span><br></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 测试类</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AgentmainAgentDemo</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">            <span class="keyword">new</span> TestAgent().test();</span><br><span class="line">            Thread.sleep(<span class="number">5000</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 将agent attach到对应jvm的类</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">JVMTIThread</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span></span></span><br><span class="line"><span class="function">            <span class="keyword">throws</span> IOException, AttachNotSupportedException, AgentLoadException, AgentInitializationException </span>&#123;</span><br><span class="line">        List&lt;VirtualMachineDescriptor&gt; list = VirtualMachine.list();</span><br><span class="line">        <span class="keyword">for</span> (VirtualMachineDescriptor vmd : list) &#123;</span><br><span class="line">            <span class="keyword">if</span> (vmd.displayName().endsWith(<span class="string">"AgentmainAgentDemo"</span>)) &#123; <span class="comment">// 确定测试类</span></span><br><span class="line">                VirtualMachine virtualMachine = VirtualMachine.attach(vmd.id());</span><br><span class="line">                virtualMachine.loadAgent(<span class="string">"agent jar包全路径"</span>, <span class="string">"参数"</span>);</span><br><span class="line">                System.out.println(<span class="string">"ok"</span>);</span><br><span class="line">                virtualMachine.detach();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// gradle 添加tools.jar</span></span><br><span class="line">dependencies &#123;</span><br><span class="line">   <span class="function">compile <span class="title">files</span><span class="params">(<span class="string">"$&#123;System.properties['java.home']&#125;/../lib/tools.jar"</span>)</span></span></span><br><span class="line"><span class="function">&#125;</span></span><br><span class="line"><span class="function"><span class="comment">// 先执行AgentmainAgentDemo，再执行JVMTIThread, 这样的操作只能修改一次？</span></span></span><br><span class="line"><span class="function"><span class="comment">// output:</span></span></span><br><span class="line"><span class="function">TestAgent test...</span></span><br><span class="line"><span class="function">agentmain load Class  :com/sf/dawn/agentmain/TestAgent</span></span><br><span class="line"><span class="function">TestAgent test...</span></span><br><span class="line"><span class="function">TestAgent test...</span></span><br><span class="line"><span class="function">TestAgent test...</span></span><br></pre></td></tr></table></figure>
+<h4 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h4><p> <a href="https://infoq.cn/article/javaagent-illustrated" target="_blank" rel="noopener">原理,具体细节见大神的分析</a>，有待深入研究确认</p>
+<ul>
+<li>1、<a href="https://docs.oracle.com/javase/7/docs/platform/jvmti/jvmti.html" target="_blank" rel="noopener">JVMTI</a>:JVM Tool Interface, JVM 暴露出来的一些供用户扩展的接口集合,JVMTI 基于事件驱动，JVM 每执行到一定的逻辑就会调用一些事件的回调接口，这些接口可以供开发者扩展自己的逻辑；</li>
+<li>2、Instrument接口，则是JVMTI接口中的一个；</li>
+<li>3、JVMTIAgent：动态库，JVMTI逻辑回调的实现；通常会实现3个函数的全部和部分：<br>3.1、Agent_OnLoad函数，agent在jvm启动时候进行加载，则是通过vm参数指定的；<br>3.2、Agent_OnAttach函数, agent不在jvm启动时候进行加载，则通过attach机制，进行进程间通信，向目标进程发送load命令；<br>3.3、Agent_OnUnload函数, agent卸载时调用；</li>
+<li><p>4、Instrument agent是其中一个JVMTIAgent，又叫JPLISAgent(Java Programming Language Instrumentation Services Agent)，实现了Agent_OnLoad、Agent_OnAttach；</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">JPLISAgent</span> &#123;</span></span><br><span class="line">    JavaVM *                mJVM;                   <span class="comment">/* handle to the JVM */</span></span><br><span class="line">    JPLISEnvironment        mNormalEnvironment;     <span class="comment">/* for every thing but retransform stuff */</span></span><br><span class="line">    JPLISEnvironment        mRetransformEnvironment;<span class="comment">/* for retransform stuff only */</span></span><br><span class="line">    jobject                 mInstrumentationImpl;   <span class="comment">/* handle to the Instrumentation instance */</span></span><br><span class="line">    jmethodID               mPremainCaller;         <span class="comment">/* method on the InstrumentationImpl that does the premain stuff (cached to save lots of lookups) */</span></span><br><span class="line">    jmethodID               mAgentmainCaller;       <span class="comment">/* method on the InstrumentationImpl for agents loaded via attach mechanism */</span></span><br><span class="line">    jmethodID               mTransform;             <span class="comment">/* method on the InstrumentationImpl that does the class file transform */</span></span><br><span class="line">    jboolean                mRedefineAvailable;     <span class="comment">/* cached answer to "does this agent support redefine" */</span></span><br><span class="line">    jboolean                mRedefineAdded;         <span class="comment">/* indicates if can_redefine_classes capability has been added */</span></span><br><span class="line">    jboolean                mNativeMethodPrefixAvailable; <span class="comment">/* cached answer to "does this agent support prefixing" */</span></span><br><span class="line">    jboolean                mNativeMethodPrefixAdded;     <span class="comment">/* indicates if can_set_native_method_prefix capability has been added */</span></span><br><span class="line">    <span class="keyword">char</span> <span class="keyword">const</span> *            mAgentClassName;        <span class="comment">/* agent class name */</span></span><br><span class="line">    <span class="keyword">char</span> <span class="keyword">const</span> *            mOptionsString;         <span class="comment">/* -javaagent options string */</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">JPLISEnvironment</span> &#123;</span></span><br><span class="line">    jvmtiEnv *              mJVMTIEnv;              <span class="comment">/* the JVM TI environment */</span></span><br><span class="line">    JPLISAgent *            mAgent;                 <span class="comment">/* corresponding agent */</span></span><br><span class="line">    jboolean                mIsRetransformer;       <span class="comment">/* indicates if special environment */</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="comment">// mInstrumentationImpl 指向sun.instrument.InstrumentationImpl</span></span><br><span class="line"><span class="comment">// mPremainCaller 指向sun.instrument.InstrumentationImpl.loadClassAndCallPremain方法</span></span><br><span class="line"><span class="comment">// mAgentmainCaller 指向 sun.instrument.InstrumentationImpl.loadClassAndCallAgentmain 方法</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>5、premain方式过程<br>5.1 创建并初始化 JPLISAgent<br>5.2 监听 VMInit 事件，在 vm 初始化完成之后做下面的事情：<br>  创建 InstrumentationImpl 对象<br>  监听 ClassFileLoadHook 事件<br>  调用 InstrumentationImpl 的<code>loadClassAndCallPremain</code>方法，在这个方法里会调用 javaagent 里 MANIFEST.MF 里指定的<code>Premain-Class</code>类的 premain 方法<br>5.3 解析 javaagent 里 MANIFEST.MF 里的参数，并根据这些参数来设置 JPLISAgent 里的一些内容</p>
+</li>
+<li>6、agentmain方式过程<br>6.1 创建并初始化 JPLISAgent<br>6.2 解析 javaagent 里 MANIFEST.MF 里的参数<br>6.3 创建 InstrumentationImpl 对象<br>6.4 监听 ClassFileLoadHook 事件<br>6.5 调用 InstrumentationImpl 的loadClassAndCallAgentmain方法，在这个方法里会调用 javaagent 里 MANIFEST.MF 里指定的Agent-Class类的agentmain方法</li>
+</ul>
+<h4 id="字节码修改类库：Javassist、ASM、cglib"><a href="#字节码修改类库：Javassist、ASM、cglib" class="headerlink" title="字节码修改类库：Javassist、ASM、cglib"></a>字节码修改类库：Javassist、ASM、cglib</h4><h3 id="web容器类加载"><a href="#web容器类加载" class="headerlink" title="web容器类加载"></a>web容器类加载</h3><ul>
+<li>jetty</li>
+<li>tomcat</li>
+</ul>
+<h3 id="FIXME"><a href="#FIXME" class="headerlink" title="FIXME"></a>FIXME</h3><ul>
+<li><a href="http://lovestblog.cn/blog/2014/06/18/jvm-attach/" target="_blank" rel="noopener">jvm attach机制、jstack</a></li>
+<li><a href="https://github.com/sugengbin/MyPerf4J" target="_blank" rel="noopener">基于Java agent实现的监控统计工具源码</a></li>
+</ul>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><ul>
+<li><a href="https://blogs.sap.com/2016/03/09/java-bytecode-instrumentation-using-agent-breaking-into-java-application-at-runtime/" target="_blank" rel="noopener">Java Bytecode Instrumentation使用代理：在运行时分解Java应用程序</a></li>
+<li></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Class-Loader/" rel="tag"># Class-Loader</a>
+          
+            <a href="/tags/java-agent/" rel="tag"># java-agent</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/07/26/aop权限控制/" rel="next" title="aop权限控制">
+                <i class="fa fa-chevron-left"></i> aop权限控制
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/03/10/SuppressWarnings-unchecked/" rel="prev" title="">
+                 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">sugengbin</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">42</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">34</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#类加载过程是怎样的？"><span class="nav-number">1.</span> <span class="nav-text">类加载过程是怎样的？</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Class-对象"><span class="nav-number">1.1.</span> <span class="nav-text">Class 对象</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#符号引用与直接引用"><span class="nav-number">1.2.</span> <span class="nav-text">符号引用与直接引用</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#什么是双亲委派模型？"><span class="nav-number">2.</span> <span class="nav-text">什么是双亲委派模型？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#有哪些类加载器，分别起什么作用？"><span class="nav-number">3.</span> <span class="nav-text">有哪些类加载器，分别起什么作用？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#如何自定义类加载器-应用场景？"><span class="nav-number">4.</span> <span class="nav-text">如何自定义类加载器? 应用场景？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#java-lang-ClassLoader"><span class="nav-number">5.</span> <span class="nav-text">java.lang.ClassLoader</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#如何降低类加载的开销"><span class="nav-number">6.</span> <span class="nav-text">如何降低类加载的开销?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#什么是-Jar-Hell-问题？"><span class="nav-number">7.</span> <span class="nav-text">什么是 Jar Hell 问题？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#热部署、java-agent"><span class="nav-number">8.</span> <span class="nav-text">热部署、java agent</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#概念"><span class="nav-number">8.1.</span> <span class="nav-text">概念</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#premain实现"><span class="nav-number">8.2.</span> <span class="nav-text">premain实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#agentmain实现"><span class="nav-number">8.3.</span> <span class="nav-text">agentmain实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#原理"><span class="nav-number">8.4.</span> <span class="nav-text">原理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#字节码修改类库：Javassist、ASM、cglib"><span class="nav-number">8.5.</span> <span class="nav-text">字节码修改类库：Javassist、ASM、cglib</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#web容器类加载"><span class="nav-number">9.</span> <span class="nav-text">web容器类加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FIXME"><span class="nav-number">10.</span> <span class="nav-text">FIXME</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考"><span class="nav-number">11.</span> <span class="nav-text">参考</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">sugengbin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="design,async,queue," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="什么是异步我的理解，异步的概念是相对同步而言的，同步和异步在并发编程上也有对应的概念，对应的是串行和并行，并发编程上考虑的更微观是在线程上考虑，设计范围局限在语言层面。更宏观点的概念，同步是实时响应的过程，而异步则非实时。 异步设计异步设计包括有两方面的内容 系统级别的异步通讯优点：系统之间解耦解决吞吐量问题、支持一对多通讯（同步是一对一）、避免故障的连锁效应。  请求响应方式发送方请求接收方，接">
+<meta name="keywords" content="design,async,queue">
+<meta property="og:type" content="article">
+<meta property="og:title" content="异步设计">
+<meta property="og:url" content="http://yoursite.com/2018/05/22/异步设计/index.html">
+<meta property="og:site_name" content="Knight Dawn">
+<meta property="og:description" content="什么是异步我的理解，异步的概念是相对同步而言的，同步和异步在并发编程上也有对应的概念，对应的是串行和并行，并发编程上考虑的更微观是在线程上考虑，设计范围局限在语言层面。更宏观点的概念，同步是实时响应的过程，而异步则非实时。 异步设计异步设计包括有两方面的内容 系统级别的异步通讯优点：系统之间解耦解决吞吐量问题、支持一对多通讯（同步是一对一）、避免故障的连锁效应。  请求响应方式发送方请求接收方，接">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://yoursite.com/images/async/broker.png">
+<meta property="og:updated_time" content="2018-06-20T07:19:45.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="异步设计">
+<meta name="twitter:description" content="什么是异步我的理解，异步的概念是相对同步而言的，同步和异步在并发编程上也有对应的概念，对应的是串行和并行，并发编程上考虑的更微观是在线程上考虑，设计范围局限在语言层面。更宏观点的概念，同步是实时响应的过程，而异步则非实时。 异步设计异步设计包括有两方面的内容 系统级别的异步通讯优点：系统之间解耦解决吞吐量问题、支持一对多通讯（同步是一对一）、避免故障的连锁效应。  请求响应方式发送方请求接收方，接">
+<meta name="twitter:image" content="http://yoursite.com/images/async/broker.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/05/22/异步设计/"/>
+
+
+
+
+
+  <title>异步设计 | Knight Dawn</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Knight Dawn</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/05/22/异步设计/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="sugengbin">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Knight Dawn">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">异步设计</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-22T21:37:01+08:00">
+                2018-05-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="什么是异步"><a href="#什么是异步" class="headerlink" title="什么是异步"></a>什么是异步</h2><p>我的理解，异步的概念是相对同步而言的，同步和异步在并发编程上也有对应的概念，对应的是串行和并行，并发编程上考虑的更微观是在线程上考虑，设计范围局限在语言层面。更宏观点的概念，同步是实时响应的过程，而异步则非实时。</p>
+<h2 id="异步设计"><a href="#异步设计" class="headerlink" title="异步设计"></a>异步设计</h2><p>异步设计包括有两方面的内容</p>
+<h2 id="系统级别的异步通讯"><a href="#系统级别的异步通讯" class="headerlink" title="系统级别的异步通讯"></a>系统级别的异步通讯</h2><p>优点：系统之间解耦解决吞吐量问题、支持一对多通讯（同步是一对一）、避免故障的连锁效应。</p>
+<ul>
+<li><p>请求响应方式<br>发送方请求接收方，接收方收到后直接返回<strong>[收到，正在处理中]</strong><br>发送方怎么获得结果？<br>1、 发送方发起轮询或事件触发，查询接收方是否处理完成；<br>2、 发送方给接收方注册一个事件，接收方处理完成后回调注册事件。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">之前做过一个支付的设计，支付模块是外部系统，APP支付会跳到支付页面，其中需要带上通知</span><br><span class="line">支付结果的接口，支付完成后回到原来页面，支付模块调用参数的接口回传支付状态给后台。</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>订阅方式<br>接收方订阅发送方消息，发送方通过队列发送消息，接收方从队列获取消息，接收方获取消息后进行处理，完成后通知发送方成功处理；</p>
+</li>
+<li>broker方式<br>订阅方式已经可以解决异步通讯问题，但依然有耦合存在，无法做到通用；在这个基础上出现了broker中间件，类似一个数据总线的东西，接收方和发送方只依赖总线，broker独立可以做到高可用性、易于水平扩展、持久化、权限配置、处理性能的监控；<br>我最熟悉的broker中间件：<a href="http:///" target="_blank" rel="noopener">kafka</a><br><img src="/images/async/broker.png" alt="broker"><br>这种机制的缺点：<br>1、问题定位需要发送方和接收方同时参与才能定位，增加了沟通成本；<br>2、发送方回传结果变成非实时，消息量太大时候会造成回传延迟严重；<br>3、消息乱序问题，在一些有状态的消息处理中会存在问题，需要引入新的控制乱序逻辑；</li>
+</ul>
+<blockquote>
+<p>TODO: OMS 之前订单状态回传怎么解决乱序问题的？</p>
+</blockquote>
+<h3 id="扩展"><a href="#扩展" class="headerlink" title="扩展"></a>扩展</h3><blockquote>
+<p>broker方式可以解决响应速度问题，例如下单请求过来，做完必要检查后返回下单成功，然后将订单消息通过kafka<br>下发给结算、支付和调度模块，这是对请求进行削峰处理<br>在实际开发中遇到过一种需要进行削峰的场景，将历史已完成的订单数据，导入到系统中，并发送给结算模块进行结算<br>，发送结算模块使用kafka，导入时刻一瞬间几万个消息发送，导致下游处理性能瓶颈同时影响其他功能，后来采用先<br>入库，设定一个时间范围，将所有记录随机散落到这个时间段内，定时任务加载到点的数据进行下发kafka从而达到削<br>峰的作用</p>
+</blockquote>
+<h2 id="任务级别的异步处理"><a href="#任务级别的异步处理" class="headerlink" title="任务级别的异步处理"></a>任务级别的异步处理</h2><h3 id="Push-Pull-模型"><a href="#Push-Pull-模型" class="headerlink" title="Push/Pull 模型"></a>Push/Pull 模型</h3><p>push: 通过任务调度调度分配任务给节点，需要知道节点的信息，以及节点的健康状态，复杂度高；<br>pull: 节点主动获取任务进行处理，</p>
+<h3 id="分布式事务"><a href="#分布式事务" class="headerlink" title="分布式事务"></a>分布式事务</h3><ul>
+<li>异步处理出现a和b两个阶段，需要保存一个凭证，保证b能处理到；</li>
+<li>凭证处理的幂等性问题，不然在重试时就会出现多次操作的情况；</li>
+<li>如果事务完成不了，需要做补偿事务处理。</li>
+</ul>
+<h3 id="入库-定时任务的异步设计"><a href="#入库-定时任务的异步设计" class="headerlink" title="入库+定时任务的异步设计"></a>入库+定时任务的异步设计</h3><p>以往最常见的异步方式，将数据放入数据库，然后启动定时任务扫表进行处理，这里需要解决节点扫表并发问题</p>
+<h4 id="模值处理"><a href="#模值处理" class="headerlink" title="模值处理"></a>模值处理</h4><p>通过模值将业务数据切分到各个节点，节点定时器运行只归属于自己要跑的数据，数据是有规律的，如果是无规律的会导致分布不均而负载不均衡，导致某个节点压力很大，某个节点资源空闲浪费；TODO 模式的处理方法（例如单号怎么进行模值）</p>
+<h4 id="控制表加锁"><a href="#控制表加锁" class="headerlink" title="控制表加锁"></a>控制表加锁</h4><p>刚毕业时候做过这样的逻辑，添加一个控制表，加一个标识列，节点任务定时运行时候，update这个标识，如果返回大于0则获得锁，再进行数据表的任务处理，处理完将标识位恢复；如果update失败，则等待下一个循环时间再尝试；这种处理利用了update的排它锁 （TODO 数据库的锁问题）。</p>
+<h3 id="Redis延迟队列设计"><a href="#Redis延迟队列设计" class="headerlink" title="Redis延迟队列设计"></a>Redis延迟队列设计</h3><h4 id="解决场景"><a href="#解决场景" class="headerlink" title="解决场景"></a>解决场景</h4><ul>
+<li>1、异步方式解决吞吐量问题，把请求都接收下来，然后再做处理</li>
+<li>2、定时检测超时的场景（例如未支付超时进行状态回滚）</li>
+</ul>
+<h4 id="将延迟时间转换为redis有序集合score"><a href="#将延迟时间转换为redis有序集合score" class="headerlink" title="将延迟时间转换为redis有序集合score"></a>将延迟时间转换为redis有序集合score</h4><blockquote>
+<p>{id, delayTime/delayDate}   –&gt;   [id, score]</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addDelayTask</span><span class="params">(String id, <span class="keyword">double</span> delayTime)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (delayTime &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">        executeTask(id);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">double</span> score = System.currentTimeMillis() + delayTime * <span class="number">1000</span>;</span><br><span class="line">        cache.zadd(keyName, id, score);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addExpireTask</span><span class="params">(String id, Date delayDate)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">double</span> score = delayDate.getTime();</span><br><span class="line">    cache.zadd(keyName, taskId, score);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="轮询线程从队列中取任务"><a href="#轮询线程从队列中取任务" class="headerlink" title="轮询线程从队列中取任务"></a>轮询线程从队列中取任务</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (!isInterrupted()) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            waitTime(taskInterval);  <span class="comment">// 等待防止空循环耗资源</span></span><br><span class="line">            <span class="comment">// lock 进行多节点并发控制</span></span><br><span class="line">            RedisLockUtils.lock(cache, queueName, lockTimeout, <span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                    <span class="comment">// 取到点任务</span></span><br><span class="line">                    Set&lt;String&gt; ids = cache.zrangeByScore(keyName, <span class="number">0</span>, System.currentTimeMillis());</span><br><span class="line">                    <span class="keyword">if</span> (ids != <span class="keyword">null</span>) &#123;</span><br><span class="line">                        ids.forEach(id -&gt; &#123;</span><br><span class="line">                            <span class="comment">// 具体执行任务可以丢到一个线程池中运行</span></span><br><span class="line">                            executeTask(id);</span><br><span class="line">                        &#125;);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            logger.error(<span class="string">"delay task ["</span> + queueName + <span class="string">"] error."</span>, e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="分布式锁控制并发"><a href="#分布式锁控制并发" class="headerlink" title="分布式锁控制并发"></a>分布式锁控制并发</h4><p>1、通过setnx设置标识，没有成功则等待<br>2、获取到标识，则执行任务<br>3、这个设计有个问题：id成cache中移除是在线程池中的，如果任务太慢会导致来不及删除就unlock，会出现多次执行的问题（FIXME 改进方案？）<br>4、TODO <a href="http:///" target="_blank" rel="noopener">分布式锁分析</a><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 在redis中获取一个锁，并执行一个任务，最后释放锁</span></span><br><span class="line"><span class="comment"> * </span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> cache redisCache</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> lockName 锁名称</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> timeout 锁过期时间，秒</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> task 任务</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">lock</span><span class="params">(ICache cache, String lockName, <span class="keyword">int</span> timeout, Runnable task)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (!lock(cache, lockName, timeout)) &#123;</span><br><span class="line">        sleep(<span class="number">500</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        task.run();</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        unlock(cache, lockName);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 在redis中获取一个锁</span></span><br><span class="line"><span class="comment"> * </span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> cache redisCache</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> lockName 锁名称</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> timeout 锁过期时间，秒</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">lock</span><span class="params">(ICache cache, String lockName, <span class="keyword">int</span> timeout)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        String key = LOCK_PREFIX + lockName;</span><br><span class="line">        <span class="keyword">boolean</span> flag = cache.setnx(key, LOCK_VALUE, timeout);</span><br><span class="line">        <span class="keyword">if</span> (!flag &amp;&amp; (cache.ttl(key) == -<span class="number">1</span>)) &#123;</span><br><span class="line">            cache.setTtl(key, timeout);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> flag;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        logger.warn(<span class="string">"get lock ["</span> + lockName + <span class="string">"] error."</span>, e);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 释放锁</span></span><br><span class="line"><span class="comment"> * </span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> cache</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> lockName</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">unlock</span><span class="params">(ICache cache, String lockName)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        String key = LOCK_PREFIX + lockName;</span><br><span class="line">        cache.remove(key);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">        logger.warn(<span class="string">"release lock ["</span> + lockName + <span class="string">"] error"</span>, e);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="长时间任务的异步队列"><a href="#长时间任务的异步队列" class="headerlink" title="长时间任务的异步队列"></a>长时间任务的异步队列</h3><h4 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h4><p>数据导出是一个很常见的场景，为了避免用户等待，需要异步进行数据导出，导出后发送给用户或用户在页面上下载；</p>
+<h4 id="需要解决的问题点"><a href="#需要解决的问题点" class="headerlink" title="需要解决的问题点"></a>需要解决的问题点</h4><p>1、异步逻辑: 请求信息入库，id放入队列排队，节点从队列中获取任务；<br>2、节点并发: 节点从队列中获取任务然后将任务移除队列，这个操作需要同步，即事务处理，类似加锁<br>3、节点负载均衡: 设定每个节点同时可容纳的任务个数，达到上限后停止从队列中取任务</p>
+<h4 id="Redis的list"><a href="#Redis的list" class="headerlink" title="Redis的list"></a>Redis的list</h4><blockquote>
+<p>我们要实现的其实就是一个先进先出的队列，Redis的list结构正好满足，推入和弹出命令等同于放入和取出任务，这两个命令都属于原子性操作，满足同步的需求，也可以使用阻塞式的命令来等待元素，我这里只用到了lpop和rpush命令。</p>
+</blockquote>
+<h4 id="实现代码"><a href="#实现代码" class="headerlink" title="实现代码"></a>实现代码</h4><ul>
+<li>节点轮询获取任务</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="comment">// 循环等待获取队列元素</span></span><br><span class="line">		<span class="keyword">while</span> (!isInterrupted()) &#123;</span><br><span class="line">			<span class="keyword">if</span> (checkEnoughCapacity()) &#123;</span><br><span class="line">				String element = pop(); <span class="comment">// cache.pop(queueName); 需要异常捕获</span></span><br><span class="line">				<span class="keyword">if</span> (StringUtils.isNotBlank(element)) &#123;</span><br><span class="line">					runTask(element);</span><br><span class="line">				&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">					waitTime(WAIT_INTERVAL); <span class="comment">// 未取出元素 等待WAIT_INTERVAL后重试</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				waitTime(WAIT_INTERVAL); <span class="comment">// 阈值已满 等待WAIT_INTERVAL后重试</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">		logger.error(<span class="string">"async task ["</span> + queueName + <span class="string">"] error."</span>, e);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>检查当前运行任务数是否未到达阈值</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * </span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">checkEnoughCapacity</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	ThreadPool pool = ThreadPoolManager.getSingleton().getThreadPool();</span><br><span class="line">	<span class="keyword">int</span> currentTaskNum = pool.getSubmittedTaskCount(threadPoolName);</span><br><span class="line">	<span class="keyword">return</span> currentTaskNum &lt; threshold;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>丢入线程池中运行任务</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 运行任务</span></span><br><span class="line"><span class="comment"> * </span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> json</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">runTask</span><span class="params">(String json)</span> </span>&#123;</span><br><span class="line">	logger.info(<span class="string">"取出队列元素&#123;&#125;"</span>, json);</span><br><span class="line">	ThreadPool pools = ThreadPoolManager.getSingleton().getThreadPool();</span><br><span class="line">	pools.submit(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				QueueMember memeber = JsonUtils.json2Object(json, QueueMember.class);</span><br><span class="line">				handler.runTask(memeber);</span><br><span class="line">			&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">				logger.error(<span class="string">"运行任务失败：&#123;&#125;"</span>, e);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;, threadPoolName);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>ThreadPoolManager线程池模块<a href="https://github.com/aofeng/threadpool4j" target="_blank" rel="noopener">GitHub</a>上有一个实现，做到了管理和监控线程池状态，我修改添加了一个线程池内线程运行任务的的计数器，见<a href="https://github.com/sugengbin/threadpool4j" target="_blank" rel="noopener">GitHub</a>。</p>
+</blockquote>
+<h3 id="优先级队列"><a href="#优先级队列" class="headerlink" title="优先级队列"></a>优先级队列</h3><blockquote>
+<p>异步设计会带来延迟问题，请求和数据越多延迟越大，我们希望对于某些紧急重要的任务优先处理，所以我们需要设计优先级队列。</p>
+</blockquote>
+<h4 id="思路演进-（FIXME-添加图解）"><a href="#思路演进-（FIXME-添加图解）" class="headerlink" title="思路演进 （FIXME 添加图解）"></a>思路演进 （FIXME 添加图解）</h4><ul>
+<li><p>设置优先级，或动态调整队列中的元素顺序</p>
+<blockquote>
+<p>思路1：Redis有序集合，根据某种优先级算法计算score,score大小影响元素的顺序，达到score大的元素优先处理掉的目的；<br>思路2：多个List（还是redis）,例如根据优先级划分为高中低三个list, 先处理完高优先级的list，再处理低优先级的list;</p>
+</blockquote>
+</li>
+<li><p>上面两个方案都有可能会导致低优先级的元素饿死，迟迟无法处理</p>
+<blockquote>
+<p>思路2的改进：对高中低三个级别进行时间片的分配，例如对高级别list处理3个，中级别list处理2个，低级别list处理1个，循环这个处理规则；</p>
+</blockquote>
+</li>
+<li><p>优先级层次太多，例如有1~100，list太多了？</p>
+<blockquote>
+<p>结合上面思路的改进：将100个等级划分为几段，例如高分段（1~30），中分段（31~60），低分段（61~100），每个分段用一个有序集合表示，有序集合内部的score代表一个分段内的排序规则，从而将问题简化为上面的高中低时间片规则。</p>
+</blockquote>
+</li>
+</ul>
+<h4 id="实现代码-（FIXME）"><a href="#实现代码-（FIXME）" class="headerlink" title="实现代码 （FIXME）"></a>实现代码 （FIXME）</h4><h3 id="Java8异步事件驱动编程-FIXME"><a href="#Java8异步事件驱动编程-FIXME" class="headerlink" title="Java8异步事件驱动编程 FIXME"></a>Java8异步事件驱动编程 FIXME</h3><h3 id="eventbus的异步总线队列-FIXME"><a href="#eventbus的异步总线队列-FIXME" class="headerlink" title="eventbus的异步总线队列 FIXME"></a>eventbus的异步总线队列 FIXME</h3><h3 id="关于-有赞的延迟队列设计"><a href="#关于-有赞的延迟队列设计" class="headerlink" title="关于[有赞的延迟队列设计]"></a>关于[有赞的延迟队列设计]</h3><blockquote>
+<p><a href="http:///" target="_blank" rel="noopener">对“有赞延迟队列设计”的学习和实现</a> FIXME<br><a href="https://tech.youzan.com/queuing_delay/" target="_blank" rel="noopener">原文链接</a></p>
+</blockquote>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/design/" rel="tag"># design</a>
+          
+            <a href="/tags/async/" rel="tag"># async</a>
+          
+            <a href="/tags/queue/" rel="tag"># queue</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/05/21/hello-world/" rel="next" title="Hello World">
+                <i class="fa fa-chevron-left"></i> Hello World
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/05/25/缓存实现和更新设计/" rel="prev" title="缓存实现和更新设计">
+                缓存实现和更新设计 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">sugengbin</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">42</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">34</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#什么是异步"><span class="nav-number">1.</span> <span class="nav-text">什么是异步</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#异步设计"><span class="nav-number">2.</span> <span class="nav-text">异步设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#系统级别的异步通讯"><span class="nav-number">3.</span> <span class="nav-text">系统级别的异步通讯</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#扩展"><span class="nav-number">3.1.</span> <span class="nav-text">扩展</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#任务级别的异步处理"><span class="nav-number">4.</span> <span class="nav-text">任务级别的异步处理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Push-Pull-模型"><span class="nav-number">4.1.</span> <span class="nav-text">Push/Pull 模型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#分布式事务"><span class="nav-number">4.2.</span> <span class="nav-text">分布式事务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#入库-定时任务的异步设计"><span class="nav-number">4.3.</span> <span class="nav-text">入库+定时任务的异步设计</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#模值处理"><span class="nav-number">4.3.1.</span> <span class="nav-text">模值处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#控制表加锁"><span class="nav-number">4.3.2.</span> <span class="nav-text">控制表加锁</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Redis延迟队列设计"><span class="nav-number">4.4.</span> <span class="nav-text">Redis延迟队列设计</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#解决场景"><span class="nav-number">4.4.1.</span> <span class="nav-text">解决场景</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#将延迟时间转换为redis有序集合score"><span class="nav-number">4.4.2.</span> <span class="nav-text">将延迟时间转换为redis有序集合score</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#轮询线程从队列中取任务"><span class="nav-number">4.4.3.</span> <span class="nav-text">轮询线程从队列中取任务</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#分布式锁控制并发"><span class="nav-number">4.4.4.</span> <span class="nav-text">分布式锁控制并发</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#长时间任务的异步队列"><span class="nav-number">4.5.</span> <span class="nav-text">长时间任务的异步队列</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#背景"><span class="nav-number">4.5.1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#需要解决的问题点"><span class="nav-number">4.5.2.</span> <span class="nav-text">需要解决的问题点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Redis的list"><span class="nav-number">4.5.3.</span> <span class="nav-text">Redis的list</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#实现代码"><span class="nav-number">4.5.4.</span> <span class="nav-text">实现代码</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#优先级队列"><span class="nav-number">4.6.</span> <span class="nav-text">优先级队列</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#思路演进-（FIXME-添加图解）"><span class="nav-number">4.6.1.</span> <span class="nav-text">思路演进 （FIXME 添加图解）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#实现代码-（FIXME）"><span class="nav-number">4.6.2.</span> <span class="nav-text">实现代码 （FIXME）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Java8异步事件驱动编程-FIXME"><span class="nav-number">4.7.</span> <span class="nav-text">Java8异步事件驱动编程 FIXME</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#eventbus的异步总线队列-FIXME"><span class="nav-number">4.8.</span> <span class="nav-text">eventbus的异步总线队列 FIXME</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#关于-有赞的延迟队列设计"><span class="nav-number">4.9.</span> <span class="nav-text">关于[有赞的延迟队列设计]</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">sugengbin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
